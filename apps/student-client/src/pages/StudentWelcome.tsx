@@ -16,6 +16,13 @@ const FORBIDDEN_LABELS: Record<string, string> = {
     copilot: 'Microsoft Copilot',
     cursor: 'Cursor AI',
     windsurf: 'Windsurf',
+    code: 'VS Code',
+    discord: 'Discord',
+    telegram: 'Telegram',
+    whatsapp: 'WhatsApp',
+    anydesk: 'AnyDesk',
+    teamviewer: 'TeamViewer',
+    teamviewer_service: 'TeamViewer Service',
 };
 
 type Screen = 'scan' | 'blocked' | 'scan_error' | 'code' | 'details' | 'joining';
