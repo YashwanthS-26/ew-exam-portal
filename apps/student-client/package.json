@@ -8,7 +8,8 @@
   "build": {
     "appId": "com.ewexamportal.studentclient",
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "public/logo.png"
     },
     "directories": {
       "output": "dist-app"

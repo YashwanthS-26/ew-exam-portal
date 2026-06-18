@@ -48,6 +48,7 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1920,
         height: 1080,
+        icon: path.join(__dirname, '../dist/logo.png'),
         fullscreen: true,
         kiosk: true,          // TRUE kiosk: hides taskbar chrome at OS level
         skipTaskbar: false,
