@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Configure the base URL for the backend API
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://ew-exam-portal-backend.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },

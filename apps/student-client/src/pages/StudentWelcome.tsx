@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = 'https://ew-exam-portal-backend.onrender.com/api';
 
 // Apps that are NOT allowed
 const FORBIDDEN_LABELS: Record<string, string> = {
