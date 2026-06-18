@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Neo Exam - Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-container": "#006e4b",
+                      "on-error": "#ffffff",
+                      "on-tertiary-container": "#67f4b7",
+                      "on-error-container": "#93000a",
+                      "secondary-fixed": "#c9e6ff",
+                      "secondary-container": "#39b8fd",
+                      "on-primary-container": "#dad7ff",
+                      "tertiary": "#005338",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "surface-variant": "#d3e4fe",
+                      "surface-bright": "#f8f9ff",
+                      "error": "#ba1a1a",
+                      "inverse-primary": "#c3c0ff",
+                      "secondary-fixed-dim": "#89ceff",
+                      "on-secondary-fixed": "#001e2f",
+                      "primary-fixed-dim": "#c3c0ff",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "on-primary": "#ffffff",
+                      "primary-container": "#4f46e5",
+                      "surface": "#f8f9ff",
+                      "surface-dim": "#cbdbf5",
+                      "tertiary-fixed": "#6ffbbe",
+                      "surface-tint": "#4d44e3",
+                      "on-secondary-fixed-variant": "#004c6e",
+                      "outline": "#777587",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-tertiary": "#ffffff",
+                      "primary-fixed": "#e2dfff",
+                      "background": "#f8f9ff",
+                      "on-primary-fixed-variant": "#3323cc",
+                      "surface-container-highest": "#d3e4fe",
+                      "inverse-surface": "#213145",
+                      "primary": "#3525cd",
+                      "on-surface": "#0b1c30",
+                      "on-primary-fixed": "#0f0069",
+                      "secondary": "#006591",
+                      "on-background": "#0b1c30",
+                      "surface-container-low": "#eff4ff",
+                      "outline-variant": "#c7c4d8",
+                      "error-container": "#ffdad6",
+                      "on-secondary": "#ffffff",
+                      "surface-container": "#e5eeff",
+                      "on-surface-variant": "#464555",
+                      "on-secondary-container": "#004666",
+                      "on-tertiary-fixed": "#002113",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-high": "#dce9ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "container-max": "1280px",
+                      "lg": "40px",
+                      "xl": "64px",
+                      "base": "4px",
+                      "md": "24px",
+                      "sm": "16px",
+                      "gutter": "24px",
+                      "xs": "8px"
+              },
+              "fontFamily": {
+                      "title-lg": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-md": ["Inter"],
+                      "display": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "headline-lg-mobile": ["Inter"]
+              },
+              "fontSize": {
+                      "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                      "display": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        /* Level 2 Ambient Shadow for Floating Cards */
+        .level-2-shadow {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 10px 15px -5px rgba(0,0,0,0.05);
+        }
+        /* Hide scrollbar for clean UI */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md text-body-md h-screen overflow-hidden flex">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col h-full border-r border-outline-variant bg-surface docked left-0 h-screen w-64 flex-shrink-0 z-40 transition-all duration-200 ease-in-out">
+<div class="p-md flex items-center gap-3 border-b border-outline-variant/30">
+<div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-black text-primary">Neo Exam</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Enterprise Admin</p>
+</div>
+</div>
+<div class="p-4">
+<button class="w-full bg-primary hover:bg-primary-container text-on-primary hover:text-on-primary-container font-label-md text-label-md py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm">
+<span class="material-symbols-outlined">add</span>
+                Create New Exam
+            </button>
+</div>
+<nav class="flex-1 px-3 py-2 space-y-1 overflow-y-auto">
+<a class="flex items-center gap-3 px-3 py-2.5 bg-secondary-container text-on-secondary-container font-bold rounded-lg transition-all duration-200 ease-in-out group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">assignment</span>
+<span class="font-label-md text-label-md">Exams</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out rounded-lg group" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">analytics</span>
+<span class="font-label-md text-label-md">Results</span>
+</a>
+</nav>
+<div class="p-3 border-t border-outline-variant/30 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out rounded-lg" href="#">
+<span class="material-symbols-outlined text-[20px]">contact_support</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<div class="flex-1 flex flex-col h-screen overflow-hidden">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center w-full px-md h-16 bg-surface-container-lowest docked full-width top-0 sticky z-50 shadow-sm">
+<div class="flex items-center gap-4">
+<!-- Mobile Menu Button -->
+<button class="md:hidden text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div class="md:hidden font-display text-headline-md font-bold text-primary">Neo Exam</div>
+<!-- Search Bar -->
+<div class="hidden md:flex items-center bg-surface-container-low rounded-full px-4 py-2 w-64 border border-transparent focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/20 transition-all">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px] mr-2">search</span>
+<input class="bg-transparent border-none outline-none text-body-md w-full placeholder:text-on-surface-variant/70" placeholder="Search exams, students..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors relative cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-error rounded-full border-2 border-surface-container-lowest"></span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors cursor-pointer active:opacity-80">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="ml-2 w-9 h-9 rounded-full bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center cursor-pointer overflow-hidden">
+<img alt="Administrator Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a corporate administrator in their late 30s. They have a warm, confident expression and are wearing a dark blue blazer over a crisp white shirt. The background is a softly blurred modern office interior with ample natural light, reinforcing a clean, high-stakes SaaS platform aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAWaNDkneUXec9vmbJhPDCu0Wj-aeTGPCBzz1UYgOtXC0GnFDltCn_rHVPcLpi17CDmqeRpn0l0EvDNac6LjEJJzS-fpJuyLBviV-Q1_SNuIiEAKbXSBs4vjeN7CM_CWoC3OVHtoht2_btTeE8Js6y73DROr5jW6luBOp306fiFuLLTUKYF-5kpOdpLeZUAH60FBw7T7eZPQNMFJoCutiqrFR8n6iC9TYE3H0dVWtrSgXSrxC96fXIAX9o1GJefWxRz6uy7mMk1AUw"/>
+</div>
+</div>
+</header>
+<!-- Main Scrollable Canvas -->
+<main class="flex-1 overflow-y-auto p-sm md:p-lg bg-surface">
+<div class="max-w-[1280px] mx-auto space-y-xl">
+<!-- Page Header & Quick Actions -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<h2 class="font-headline-lg text-headline-lg md:text-display font-display text-on-surface">Dashboard</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Overview of your examination environment.</p>
+</div>
+<div class="flex flex-wrap gap-3">
+<button class="bg-surface-container-lowest border border-outline-variant text-primary font-label-md text-label-md py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-surface-container-low transition-colors level-2-shadow">
+<span class="material-symbols-outlined text-[18px]">visibility</span>
+                            View Results
+                        </button>
+<button class="bg-surface-container-lowest border border-outline-variant text-primary font-label-md text-label-md py-2 px-4 rounded-lg flex items-center gap-2 hover:bg-surface-container-low transition-colors level-2-shadow">
+<span class="material-symbols-outlined text-[18px]">monitor</span>
+                            Monitor Live Exams
+                        </button>
+</div>
+</div>
+<!-- 4 Statistics Cards (Bento style) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Card 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl level-2-shadow border border-outline-variant/20 flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded-lg bg-surface-container-low text-primary flex items-center justify-center">
+<span class="material-symbols-outlined">library_books</span>
+</div>
+<span class="text-tertiary-container bg-surface-container px-2 py-1 rounded text-label-sm font-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> +2%
+                            </span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Total Exams</p>
+<p class="font-headline-lg text-headline-lg text-on-surface">12</p>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl level-2-shadow border border-outline-variant/20 flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined">play_circle</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+<span class="text-error font-label-sm text-label-sm">Live</span>
+</div>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Active Exams</p>
+<p class="font-headline-lg text-headline-lg text-on-surface">3</p>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl level-2-shadow border border-outline-variant/20 flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined">groups</span>
+</div>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Total Students</p>
+<p class="font-headline-lg text-headline-lg text-on-surface">1,240</p>
+</div>
+</div>
+<!-- Card 4 -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl level-2-shadow border border-outline-variant/20 flex flex-col justify-between hover:-translate-y-1 transition-transform duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded-lg bg-tertiary-container/10 text-tertiary-container flex items-center justify-center">
+<span class="material-symbols-outlined">task_alt</span>
+</div>
+<span class="text-tertiary-container bg-surface-container px-2 py-1 rounded text-label-sm font-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> +14%
+                            </span>
+</div>
+<div>
+<p class="font-label-md text-label-md text-on-surface-variant mb-1">Completed Attempts</p>
+<p class="font-headline-lg text-headline-lg text-on-surface">8,500</p>
+</div>
+</div>
+</div>
+<!-- Charts & Activity Grid -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+<!-- Main Chart Area (Spans 2 columns on large screens) -->
+<div class="xl:col-span-2 space-y-6">
+<!-- Line Chart Card -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl level-2-shadow border border-outline-variant/20">
+<div class="flex justify-between items-center mb-6">
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Exam Participation</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Last 7 Days</p>
+</div>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-lg transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<!-- CSS Simulated Line Chart -->
+<div class="relative h-64 w-full flex items-end justify-between pt-4">
+<!-- Grid Lines -->
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none">
+<div class="w-full h-px bg-surface-container-highest"></div>
+<div class="w-full h-px bg-surface-container-highest"></div>
+<div class="w-full h-px bg-surface-container-highest"></div>
+<div class="w-full h-px bg-surface-container-highest"></div>
+<div class="w-full h-px bg-surface-container-highest"></div>
+</div>
+<!-- Step Line Simulation using SVGs for visual accuracy within CSS limits -->
+<svg class="absolute inset-0 w-full h-full overflow-visible preserve-3d" preserveaspectratio="none" viewbox="0 0 100 100">
+<path d="M 0 80 L 16 80 L 16 60 L 32 60 L 32 40 L 48 40 L 48 20 L 64 20 L 64 50 L 80 50 L 80 10 L 100 10" fill="none" stroke="#4f46e5" stroke-linejoin="round" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+<!-- Gradient Fill -->
+<path d="M 0 80 L 16 80 L 16 60 L 32 60 L 32 40 L 48 40 L 48 20 L 64 20 L 64 50 L 80 50 L 80 10 L 100 10 L 100 100 L 0 100 Z" fill="url(#chart-gradient)" opacity="0.2"></path>
+<defs>
+<lineargradient id="chart-gradient" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" stop-color="#4f46e5"></stop>
+<stop offset="100%" stop-color="#ffffff" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+<!-- Data Points -->
+<circle cx="0" cy="80" fill="#ffffff" r="3" stroke="#4f46e5" stroke-width="2" vector-effect="non-scaling-stroke"></circle>
+<circle cx="16" cy="60" fill="#ffffff" r="3" stroke="#4f46e5" stroke-width="2" vector-effect="non-scaling-stroke"></circle>
+<circle cx="32" cy="40" fill="#ffffff" r="3" stroke="#4f46e5" stroke-width="2" vector-effect="non-scaling-stroke"></circle>
+<circle cx="48" cy="20" fill="#ffffff" r="3" stroke="#4f46e5" stroke-width="2" vector-effect="non-scaling-stroke"></circle>
+<circle cx="64" cy="50" fill="#ffffff" r="3" stroke="#4f46e5" stroke-width="2" vector-effect="non-scaling-stroke"></circle>
+<circle cx="80" cy="10" fill="#ffffff" r="3" stroke="#4f46e5" stroke-width="2" vector-effect="non-scaling-stroke"></circle>
+</svg>
+<!-- X Axis Labels -->
+<div class="absolute -bottom-6 w-full flex justify-between text-label-sm font-label-sm text-on-surface-variant px-1">
+<span>Mon</span>
+<span>Tue</span>
+<span>Wed</span>
+<span>Thu</span>
+<span>Fri</span>
+<span>Sat</span>
+</div>
+</div>
+</div>
+<!-- Bar Chart Card -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl level-2-shadow border border-outline-variant/20">
+<div class="flex justify-between items-center mb-6">
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Student Performance</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Grade Distribution (Physics Midterm)</p>
+</div>
+</div>
+<!-- CSS Bar Chart -->
+<div class="h-48 w-full flex items-end justify-around gap-2 pt-4 relative">
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none z-0">
+<div class="w-full h-px bg-surface-container-highest"></div>
+<div class="w-full h-px bg-surface-container-highest"></div>
+<div class="w-full h-px bg-surface-container-highest"></div>
+<div class="w-full h-px bg-surface-container-highest"></div>
+</div>
+<div class="w-12 bg-surface-container-low rounded-t-sm h-[10%] relative z-10 group hover:bg-secondary-container transition-colors cursor-pointer flex flex-col justify-end">
+<div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-2 py-1 rounded shadow-md transition-opacity">5%</div>
+<div class="w-full text-center mt-2 absolute -bottom-6 text-label-sm text-on-surface-variant">F</div>
+</div>
+<div class="w-12 bg-surface-container-high rounded-t-sm h-[20%] relative z-10 group hover:bg-secondary-container transition-colors cursor-pointer flex flex-col justify-end">
+<div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-2 py-1 rounded shadow-md transition-opacity">12%</div>
+<div class="w-full text-center mt-2 absolute -bottom-6 text-label-sm text-on-surface-variant">D</div>
+</div>
+<div class="w-12 bg-secondary-container rounded-t-sm h-[60%] relative z-10 group hover:bg-secondary transition-colors cursor-pointer flex flex-col justify-end">
+<div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-2 py-1 rounded shadow-md transition-opacity">45%</div>
+<div class="w-full text-center mt-2 absolute -bottom-6 text-label-sm text-on-surface-variant font-bold text-on-surface">C</div>
+</div>
+<div class="w-12 bg-primary-container rounded-t-sm h-[40%] relative z-10 group hover:bg-primary transition-colors cursor-pointer flex flex-col justify-end">
+<div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-2 py-1 rounded shadow-md transition-opacity">28%</div>
+<div class="w-full text-center mt-2 absolute -bottom-6 text-label-sm text-on-surface-variant">B</div>
+</div>
+<div class="w-12 bg-tertiary-container rounded-t-sm h-[15%] relative z-10 group hover:bg-tertiary transition-colors cursor-pointer flex flex-col justify-end">
+<div class="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-label-sm px-2 py-1 rounded shadow-md transition-opacity">10%</div>
+<div class="w-full text-center mt-2 absolute -bottom-6 text-label-sm text-on-surface-variant">A</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Recent Activity -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl level-2-shadow border border-outline-variant/20 flex flex-col h-full min-h-[400px]">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-title-lg text-title-lg text-on-surface">Recent Activity</h3>
+<button class="text-primary hover:text-primary-container font-label-sm text-label-sm transition-colors">View All</button>
+</div>
+<div class="flex-1 space-y-6 relative before:absolute before:inset-y-0 before:left-[19px] before:w-px before:bg-surface-container-highest">
+<!-- Activity Item 1 -->
+<div class="relative flex gap-4">
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shrink-0 z-10 border-4 border-surface-container-lowest">
+<span class="material-symbols-outlined text-[18px]">add_circle</span>
+</div>
+<div class="pt-1 pb-4">
+<p class="font-label-md text-label-md text-on-surface">New exam created</p>
+<p class="font-body-md text-body-md text-on-surface-variant mt-0.5">Calculus II Final Exam was created by Admin Sarah.</p>
+<p class="font-label-sm text-label-sm text-outline mt-2">10 mins ago</p>
+</div>
+</div>
+<!-- Activity Item 2 -->
+<div class="relative flex gap-4">
+<div class="w-10 h-10 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center shrink-0 z-10 border-4 border-surface-container-lowest">
+<span class="material-symbols-outlined text-[18px]">fact_check</span>
+</div>
+<div class="pt-1 pb-4">
+<p class="font-label-md text-label-md text-on-surface">Results Published</p>
+<p class="font-body-md text-body-md text-on-surface-variant mt-0.5">Physics Midterm results are now available to 342 students.</p>
+<p class="font-label-sm text-label-sm text-outline mt-2">2 hours ago</p>
+</div>
+</div>
+<!-- Activity Item 3 -->
+<div class="relative flex gap-4">
+<div class="w-10 h-10 rounded-full bg-error-container text-on-error-container flex items-center justify-center shrink-0 z-10 border-4 border-surface-container-lowest">
+<span class="material-symbols-outlined text-[18px]">warning</span>
+</div>
+<div class="pt-1 pb-4">
+<p class="font-label-md text-label-md text-on-surface">Flagged Activity</p>
+<p class="font-body-md text-body-md text-on-surface-variant mt-0.5">System detected multiple IP shifts during Chemistry Quiz.</p>
+<button class="mt-2 text-primary font-label-sm text-label-sm hover:underline">Review logs</button>
+<p class="font-label-sm text-label-sm text-outline mt-2">5 hours ago</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom spacing for scroll -->
+<div class="h-16"></div>
+</main>
+</div>
+</body></html>

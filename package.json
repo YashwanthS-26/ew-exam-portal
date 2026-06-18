@@ -1,0 +1,16 @@
+{
+  "name": "ew-exam-portal",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "start:backend": "npm run dev -w backend",
+    "start:admin": "npm run dev -w admin-portal",
+    "start:student": "npm run dev -w student-client",
+    "build:backend": "npm run build -w backend",
+    "start": "npm run start -w backend"
+  }
+}

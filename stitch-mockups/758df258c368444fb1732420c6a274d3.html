@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Create Exam - Neo Exam</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* Custom Scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c7c4d8; /* outline-variant */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #777587; /* outline */
+        }
+        
+        /* Google Forms style focused input bottom border */
+        .form-input-minimal {
+            border: none;
+            border-bottom: 1px solid #c7c4d8; /* outline-variant */
+            border-radius: 0;
+            background-color: transparent;
+            padding: 8px 0;
+            transition: border-color 0.2s;
+        }
+        .form-input-minimal:focus {
+            outline: none;
+            border-bottom: 2px solid #3525cd; /* primary */
+            box-shadow: none;
+        }
+    </style>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#006e4b",
+                    "on-error": "#ffffff",
+                    "on-tertiary-container": "#67f4b7",
+                    "on-error-container": "#93000a",
+                    "secondary-fixed": "#c9e6ff",
+                    "secondary-container": "#39b8fd",
+                    "on-primary-container": "#dad7ff",
+                    "tertiary": "#005338",
+                    "tertiary-fixed-dim": "#4edea3",
+                    "surface-variant": "#d3e4fe",
+                    "surface-bright": "#f8f9ff",
+                    "error": "#ba1a1a",
+                    "inverse-primary": "#c3c0ff",
+                    "secondary-fixed-dim": "#89ceff",
+                    "on-secondary-fixed": "#001e2f",
+                    "primary-fixed-dim": "#c3c0ff",
+                    "on-tertiary-fixed-variant": "#005236",
+                    "on-primary": "#ffffff",
+                    "primary-container": "#4f46e5",
+                    "surface": "#f8f9ff",
+                    "surface-dim": "#cbdbf5",
+                    "tertiary-fixed": "#6ffbbe",
+                    "surface-tint": "#4d44e3",
+                    "on-secondary-fixed-variant": "#004c6e",
+                    "outline": "#777587",
+                    "inverse-on-surface": "#eaf1ff",
+                    "on-tertiary": "#ffffff",
+                    "primary-fixed": "#e2dfff",
+                    "background": "#f8f9ff",
+                    "on-primary-fixed-variant": "#3323cc",
+                    "surface-container-highest": "#d3e4fe",
+                    "inverse-surface": "#213145",
+                    "primary": "#3525cd",
+                    "on-surface": "#0b1c30",
+                    "on-primary-fixed": "#0f0069",
+                    "secondary": "#006591",
+                    "on-background": "#0b1c30",
+                    "surface-container-low": "#eff4ff",
+                    "outline-variant": "#c7c4d8",
+                    "error-container": "#ffdad6",
+                    "on-secondary": "#ffffff",
+                    "surface-container": "#e5eeff",
+                    "on-surface-variant": "#464555",
+                    "on-secondary-container": "#004666",
+                    "on-tertiary-fixed": "#002113",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-container-high": "#dce9ff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "container-max": "1280px",
+                    "lg": "40px",
+                    "xl": "64px",
+                    "base": "4px",
+                    "md": "24px",
+                    "sm": "16px",
+                    "gutter": "24px",
+                    "xs": "8px"
+            },
+            "fontFamily": {
+                    "title-lg": ["Inter", "sans-serif"],
+                    "headline-lg": ["Inter", "sans-serif"],
+                    "body-md": ["Inter", "sans-serif"],
+                    "headline-md": ["Inter", "sans-serif"],
+                    "label-md": ["Inter", "sans-serif"],
+                    "display": ["Inter", "sans-serif"],
+                    "body-lg": ["Inter", "sans-serif"],
+                    "label-sm": ["Inter", "sans-serif"],
+                    "headline-lg-mobile": ["Inter", "sans-serif"]
+            },
+            "fontSize": {
+                    "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                    "display": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased overflow-hidden">
+<div class="flex h-screen w-full">
+<!-- Shared Component: SideNavBar -->
+<!-- Execution of style_* keys from JSON -->
+<nav class="hidden md:flex flex-col h-full border-r border-outline-variant bg-surface w-64 flex-shrink-0 z-20">
+<!-- Header -->
+<div class="p-md flex flex-col gap-xs border-b border-outline-variant/30">
+<div class="flex items-center gap-xs">
+<div class="w-8 h-8 rounded bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">view_cozy</span>
+</div>
+<span class="font-headline-md text-headline-md font-black text-primary">Neo Exam</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Enterprise Admin</span>
+</div>
+<!-- CTA -->
+<div class="p-sm">
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-2 px-4 rounded-lg shadow-sm hover:opacity-90 transition-opacity flex justify-center items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">add</span>
+                    Create New Exam
+                </button>
+</div>
+<!-- Main Navigation -->
+<div class="flex-1 overflow-y-auto p-sm flex flex-col gap-xs">
+<!-- Inactive -->
+<a class="flex items-center gap-md px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out cursor-pointer" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<!-- Active Navigation: "Exams" (Context: Creating an exam falls under Exam management) -->
+<!-- Applying style_active_navigation -->
+<a class="flex items-center gap-md px-4 py-3 rounded-lg bg-secondary-container text-on-secondary-container font-bold transition-all duration-200 ease-in-out cursor-pointer" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">assignment</span>
+<span class="font-label-md text-label-md">Exams</span>
+</a>
+<!-- Inactive -->
+<a class="flex items-center gap-md px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out cursor-pointer" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md text-label-md">Results</span>
+</a>
+</div>
+<!-- Footer Navigation -->
+<div class="p-sm border-t border-outline-variant/30 flex flex-col gap-xs">
+<a class="flex items-center gap-md px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out cursor-pointer" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-md px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out cursor-pointer" href="#">
+<span class="material-symbols-outlined">contact_support</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+</div>
+</nav>
+<!-- Main Workspace Canvas -->
+<main class="flex-1 flex flex-col h-full overflow-hidden relative">
+<!-- Top Action Bar (Contextual for creation) -->
+<header class="bg-surface-container-lowest border-b border-outline-variant/30 px-lg py-sm flex justify-between items-center z-10 shadow-sm shrink-0">
+<div class="flex items-center gap-4">
+<button class="md:hidden text-on-surface-variant p-2 rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<div>
+<h1 class="font-title-lg text-title-lg text-on-surface">Create New Exam</h1>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Draft saved a minute ago</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<button class="font-label-md text-label-md text-primary bg-surface hover:bg-surface-container-low px-4 py-2 rounded-lg border border-primary transition-colors">
+                        Preview
+                    </button>
+<button class="font-label-md text-label-md text-on-primary bg-primary hover:opacity-90 px-4 py-2 rounded-lg transition-opacity flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">publish</span>
+                        Publish
+                    </button>
+</div>
+</header>
+<!-- Scrollable Content Area -->
+<div class="flex-1 overflow-y-auto p-4 md:p-lg">
+<div class="max-w-container-max mx-auto h-full">
+<!-- Layout Grid: Form (Left) + Preview (Right) -->
+<div class="flex flex-col lg:flex-row gap-lg items-start h-full pb-xl">
+<!-- LEFT: Main Form Content (Google Forms Vibe) -->
+<div class="flex-1 w-full flex flex-col gap-md max-w-3xl">
+<!-- Accent Top Bar mimicking form header -->
+<div class="h-3 w-full bg-primary rounded-t-xl -mb-md z-10 relative"></div>
+<!-- Section 1: Basic Details -->
+<div class="bg-surface-container-lowest rounded-xl p-md md:p-lg shadow-[0_1px_3px_rgba(0,0,0,0.05),0_10px_15px_-5px_rgba(0,0,0,0.05)] border border-outline-variant/20 relative z-0">
+<div class="flex flex-col gap-6">
+<div>
+<input class="w-full form-input-minimal font-headline-md text-headline-md text-on-surface placeholder:text-outline focus:ring-0" placeholder="Exam Title" type="text" value="Midterm Assessment 2024"/>
+</div>
+<div>
+<textarea class="w-full form-input-minimal font-body-md text-body-md text-on-surface-variant placeholder:text-outline focus:ring-0 resize-none" placeholder="Exam Description (Optional)" rows="2"></textarea>
+</div>
+<div class="mt-2">
+<label class="block font-label-sm text-label-sm text-on-surface-variant mb-1">Access Code</label>
+<input class="w-1/2 form-input-minimal font-body-md text-body-md text-on-surface focus:ring-0" placeholder="e.g., NEO-2024" type="text"/>
+</div>
+</div>
+</div>
+<!-- Section 2: Timing -->
+<div class="bg-surface-container-lowest rounded-xl p-md md:p-lg shadow-[0_1px_3px_rgba(0,0,0,0.05),0_10px_15px_-5px_rgba(0,0,0,0.05)] border border-outline-variant/20 flex flex-col gap-6">
+<div class="flex items-center gap-2 border-b border-outline-variant/20 pb-4">
+<span class="material-symbols-outlined text-primary">schedule</span>
+<h2 class="font-title-lg text-title-lg text-on-surface">Timing &amp; Access</h2>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2">Start Time</label>
+<input class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-primary shadow-sm font-body-md text-body-md text-on-surface bg-surface-bright" type="datetime-local"/>
+</div>
+<div>
+<label class="block font-label-md text-label-md text-on-surface mb-2">Duration (Minutes)</label>
+<input class="w-full rounded-lg border-outline-variant focus:border-primary focus:ring-primary shadow-sm font-body-md text-body-md text-on-surface bg-surface-bright" min="1" placeholder="60" type="number"/>
+</div>
+<div class="md:col-span-2">
+<label class="block font-label-md text-label-md text-on-surface mb-2">Cooldown Period (Minutes)</label>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-2">Time student must wait before retaking (if applicable).</p>
+<input class="w-1/2 rounded-lg border-outline-variant focus:border-primary focus:ring-primary shadow-sm font-body-md text-body-md text-on-surface bg-surface-bright" min="0" placeholder="0" type="number"/>
+</div>
+</div>
+</div>
+<!-- Section 3: Question Settings -->
+<div class="bg-surface-container-lowest rounded-xl p-md md:p-lg shadow-[0_1px_3px_rgba(0,0,0,0.05),0_10px_15px_-5px_rgba(0,0,0,0.05)] border border-outline-variant/20 flex flex-col gap-6">
+<div class="flex items-center gap-2 border-b border-outline-variant/20 pb-4">
+<span class="material-symbols-outlined text-primary">list_alt</span>
+<h2 class="font-title-lg text-title-lg text-on-surface">Question Settings</h2>
+</div>
+<div class="flex flex-col gap-6">
+<div class="flex items-start justify-between gap-4 p-4 rounded-lg border border-outline-variant/30 bg-surface-bright">
+<div>
+<h3 class="font-body-md text-body-md font-semibold text-on-surface">Question Pool Size</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Limit how many questions are drawn from the total pool.</p>
+</div>
+<input class="w-24 rounded-lg border-outline-variant focus:border-primary focus:ring-primary shadow-sm font-body-md text-body-md text-on-surface text-center" min="1" placeholder="All" type="number"/>
+</div>
+<div class="flex items-center justify-between p-4 rounded-lg border border-outline-variant/30 bg-surface-bright">
+<div>
+<h3 class="font-body-md text-body-md font-semibold text-on-surface">Randomize Question Order</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Each student sees a different sequence.</p>
+</div>
+<!-- Custom Toggle -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-surface-variant peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-container/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+</div>
+<!-- Section 4: Result Settings -->
+<div class="bg-surface-container-lowest rounded-xl p-md md:p-lg shadow-[0_1px_3px_rgba(0,0,0,0.05),0_10px_15px_-5px_rgba(0,0,0,0.05)] border border-outline-variant/20 flex flex-col gap-6">
+<div class="flex items-center gap-2 border-b border-outline-variant/20 pb-4">
+<span class="material-symbols-outlined text-primary">visibility</span>
+<h2 class="font-title-lg text-title-lg text-on-surface">Result Settings</h2>
+</div>
+<div class="flex items-center justify-between p-4 rounded-lg border border-outline-variant/30 bg-surface-bright">
+<div>
+<h3 class="font-body-md text-body-md font-semibold text-on-surface">Show Results to Students</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Allow students to see their score immediately after submission.</p>
+</div>
+<!-- Custom Toggle -->
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-outline-variant peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-container/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</label>
+</div>
+</div>
+<!-- Add Question Action -->
+<button class="w-full py-4 border-2 border-dashed border-outline-variant rounded-xl text-on-surface-variant hover:text-primary hover:border-primary hover:bg-surface-container-low transition-colors flex items-center justify-center gap-2 mt-4 font-label-md text-label-md">
+<span class="material-symbols-outlined">add_circle</span>
+                                Add Content Block or Question
+                            </button>
+</div>
+<!-- RIGHT: Sticky Preview Panel -->
+<aside class="hidden lg:block w-80 shrink-0 sticky top-lg">
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05),0_10px_15px_-5px_rgba(0,0,0,0.05)] border border-outline-variant/20 overflow-hidden">
+<!-- Panel Header -->
+<div class="bg-surface-container-low px-4 py-3 border-b border-outline-variant/20 flex justify-between items-center">
+<h3 class="font-label-md text-label-md font-semibold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">preview</span>
+                                        Live Summary
+                                    </h3>
+<span class="bg-secondary-container text-on-secondary-container text-[10px] uppercase font-bold px-2 py-1 rounded">Draft</span>
+</div>
+<!-- Panel Body -->
+<div class="p-4 flex flex-col gap-4">
+<!-- Title Preview -->
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-1">Title</p>
+<p class="font-body-md text-body-md text-on-surface font-medium truncate" id="preview-title">Midterm Assessment 2024</p>
+</div>
+<hr class="border-outline-variant/20"/>
+<!-- Stats Grid -->
+<div class="grid grid-cols-2 gap-4">
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">timer</span> Duration</p>
+<p class="font-body-md text-body-md text-on-surface">60 mins</p>
+</div>
+<div>
+<p class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">format_list_numbered</span> Pool</p>
+<p class="font-body-md text-body-md text-on-surface">All Qs</p>
+</div>
+</div>
+<hr class="border-outline-variant/20"/>
+<!-- Badges -->
+<div class="flex flex-wrap gap-2">
+<span class="inline-flex items-center gap-1 px-2 py-1 bg-surface-container-high rounded text-xs font-medium text-on-surface">
+<span class="material-symbols-outlined text-[14px] text-primary">shuffle</span> Random
+                                        </span>
+<span class="inline-flex items-center gap-1 px-2 py-1 bg-surface-container-high rounded text-xs font-medium text-on-surface opacity-50 line-through">
+<span class="material-symbols-outlined text-[14px]">visibility</span> Results Hidden
+                                        </span>
+</div>
+</div>
+<!-- Empty State for Questions -->
+<div class="bg-surface-bright p-4 text-center border-t border-outline-variant/20">
+<span class="material-symbols-outlined text-outline-variant text-4xl mb-2">post_add</span>
+<p class="font-label-sm text-label-sm text-on-surface-variant">No questions added yet.</p>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Neo Exam - Question Builder</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-container": "#006e4b",
+                      "on-error": "#ffffff",
+                      "on-tertiary-container": "#67f4b7",
+                      "on-error-container": "#93000a",
+                      "secondary-fixed": "#c9e6ff",
+                      "secondary-container": "#39b8fd",
+                      "on-primary-container": "#dad7ff",
+                      "tertiary": "#005338",
+                      "tertiary-fixed-dim": "#4edea3",
+                      "surface-variant": "#d3e4fe",
+                      "surface-bright": "#f8f9ff",
+                      "error": "#ba1a1a",
+                      "inverse-primary": "#c3c0ff",
+                      "secondary-fixed-dim": "#89ceff",
+                      "on-secondary-fixed": "#001e2f",
+                      "primary-fixed-dim": "#c3c0ff",
+                      "on-tertiary-fixed-variant": "#005236",
+                      "on-primary": "#ffffff",
+                      "primary-container": "#4f46e5",
+                      "surface": "#f8f9ff",
+                      "surface-dim": "#cbdbf5",
+                      "tertiary-fixed": "#6ffbbe",
+                      "surface-tint": "#4d44e3",
+                      "on-secondary-fixed-variant": "#004c6e",
+                      "outline": "#777587",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-tertiary": "#ffffff",
+                      "primary-fixed": "#e2dfff",
+                      "background": "#f8f9ff",
+                      "on-primary-fixed-variant": "#3323cc",
+                      "surface-container-highest": "#d3e4fe",
+                      "inverse-surface": "#213145",
+                      "primary": "#3525cd",
+                      "on-surface": "#0b1c30",
+                      "on-primary-fixed": "#0f0069",
+                      "secondary": "#006591",
+                      "on-background": "#0b1c30",
+                      "surface-container-low": "#eff4ff",
+                      "outline-variant": "#c7c4d8",
+                      "error-container": "#ffdad6",
+                      "on-secondary": "#ffffff",
+                      "surface-container": "#e5eeff",
+                      "on-surface-variant": "#464555",
+                      "on-secondary-container": "#004666",
+                      "on-tertiary-fixed": "#002113",
+                      "surface-container-lowest": "#ffffff",
+                      "surface-container-high": "#dce9ff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "container-max": "1280px",
+                      "lg": "40px",
+                      "xl": "64px",
+                      "base": "4px",
+                      "md": "24px",
+                      "sm": "16px",
+                      "gutter": "24px",
+                      "xs": "8px"
+              },
+              "fontFamily": {
+                      "title-lg": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "label-md": ["Inter"],
+                      "display": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "label-sm": ["Inter"],
+                      "headline-lg-mobile": ["Inter"]
+              },
+              "fontSize": {
+                      "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "label-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                      "display": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                      "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+        
+        /* Custom Scrollbar for better UI */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col md:flex-row overflow-hidden">
+<!-- TopNavBar (Mobile Only) -->
+<nav class="md:hidden bg-surface-container-lowest text-primary font-body-md shadow-sm docked full-width top-0 sticky z-50 flex justify-between items-center w-full px-md h-16">
+<div class="font-display text-headline-md font-bold text-primary flex items-center gap-2">
+            Neo Exam
+        </div>
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined cursor-pointer active:opacity-80 transition-all hover:bg-surface-container-low p-2 rounded-full text-on-surface-variant" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined cursor-pointer active:opacity-80 transition-all hover:bg-surface-container-low p-2 rounded-full text-on-surface-variant" data-icon="help_outline">help_outline</span>
+<div class="w-8 h-8 rounded-full bg-surface-container-high overflow-hidden cursor-pointer">
+<img alt="Administrator Profile" class="w-full h-full object-cover" data-alt="A small circular avatar placeholder image showing a generic user silhouette or abstract colorful pattern suitable for an administrator profile in a modern light-mode web interface. The lighting is neutral and the colors are vibrant yet professional." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNm-Z5H_nuLmKDWMDMomEUJZu3XBSEC0qOaqwPmPKT5Xa-xH0UKl1KDjFr9gpLq4Je0BVlcY8UZrPPKnPCYwyDlE03NQazoocJLERC0gkO58h-tbKzrTDkmbNqujJCUc2tJk5OHSHqd7A7yt_SmXfNMKfWZFNgZjC9uVmJVHWXsei2U_iOOclZ2aZ_qVy9rplRhvqNxM0jh-OZs2kjst9FTRxYrksbcvzd9GbgQLk-yRndzv7hEoDhnA_Gv_b-KPZGEkYa4yS9zjk"/>
+</div>
+</div>
+</nav>
+<!-- SideNavBar (Web Only) -->
+<nav class="hidden md:flex flex-col h-full border-r border-outline-variant bg-surface docked left-0 w-64 flex-shrink-0 z-40 bg-surface-container-low">
+<div class="p-lg flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center font-bold text-lg">
+                NE
+             </div>
+<div>
+<div class="font-headline-md text-headline-md font-black text-primary">Neo Exam</div>
+<div class="font-label-sm text-label-sm text-on-surface-variant">Enterprise Admin</div>
+</div>
+</div>
+<div class="px-md mb-md">
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-3 rounded-lg flex items-center justify-center gap-2 hover:bg-surface-tint transition-colors shadow-sm">
+<span class="material-symbols-outlined">add</span>
+                Create New Exam
+            </button>
+</div>
+<div class="flex-1 px-sm overflow-y-auto py-2 flex flex-col gap-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-secondary-container text-on-secondary-container font-bold transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-label-md text-label-md">Exams</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-label-md text-label-md">Results</span>
+</a>
+</div>
+<div class="p-sm border-t border-outline-variant flex flex-col gap-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">contact_support</span>
+<span class="font-label-md text-label-md">Support</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-[calc(100vh-64px)] md:h-screen relative overflow-hidden bg-background">
+<!-- Header -->
+<header class="hidden md:flex justify-between items-center w-full px-lg h-16 bg-surface-container-lowest border-b border-outline-variant sticky top-0 z-30 shadow-sm">
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1 font-label-md text-label-md">
+<span class="material-symbols-outlined">arrow_back</span>
+                    Back to Exams
+                </button>
+<div class="h-6 w-px bg-outline-variant"></div>
+<h1 class="font-title-lg text-title-lg text-on-surface">Midterm Assessment 2024</h1>
+<span class="bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm px-2 py-1 rounded-md">Draft</span>
+</div>
+<div class="flex items-center gap-sm">
+<button class="font-label-md text-label-md text-primary bg-surface border border-outline-variant hover:bg-surface-container-low px-4 py-2 rounded-lg transition-colors">
+                    Preview
+                </button>
+<button class="font-label-md text-label-md bg-primary text-on-primary hover:bg-surface-tint px-4 py-2 rounded-lg transition-colors shadow-sm">
+                    Publish Exam
+                </button>
+</div>
+</header>
+<!-- Builder Canvas -->
+<div class="flex-1 overflow-y-auto p-md md:p-lg relative pb-32" id="canvas-container">
+<div class="max-w-[1000px] mx-auto flex flex-col gap-lg">
+<!-- Section Header -->
+<div class="flex justify-between items-end border-b border-outline-variant pb-sm">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface">Section A: Core Concepts</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Total Questions: 3 | Total Marks: 6</p>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-container-low">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+<!-- Collapsed Question Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-md flex items-start gap-4 hover:border-primary/50 transition-colors cursor-pointer group">
+<div class="flex flex-col items-center gap-2 text-on-surface-variant cursor-grab">
+<span class="material-symbols-outlined opacity-50 group-hover:opacity-100">drag_indicator</span>
+<span class="font-label-md text-label-md font-bold bg-surface-container px-2 py-1 rounded">Q1</span>
+</div>
+<div class="flex-1">
+<p class="font-body-lg text-body-lg text-on-surface line-clamp-2">Which of the following sorting algorithms has the best average-case time complexity?</p>
+<div class="flex items-center gap-4 mt-3">
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low px-2 py-1 rounded">Multiple Choice</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant bg-surface-container-low px-2 py-1 rounded">Marks: 2</span>
+</div>
+</div>
+<div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-2 text-on-surface-variant hover:text-primary hover:bg-surface-container-low rounded-full transition-colors"><span class="material-symbols-outlined">edit</span></button>
+<button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors"><span class="material-symbols-outlined">delete</span></button>
+</div>
+</div>
+<!-- Active Question Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.05),_0_10px_15px_-5px_rgba(0,0,0,0.05)] ring-2 ring-primary ring-offset-2 ring-offset-background p-0 relative overflow-hidden">
+<!-- Card Header/Drag Handle -->
+<div class="bg-surface-container-low px-md py-3 flex items-center justify-between border-b border-outline-variant cursor-grab">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant">drag_indicator</span>
+<span class="font-label-md text-label-md font-bold bg-primary text-on-primary px-3 py-1 rounded-md">Q2</span>
+<span class="font-label-md text-label-md text-on-surface-variant">Multiple Choice Question</span>
+</div>
+<div class="flex items-center gap-2">
+<label class="flex items-center gap-2 font-label-sm text-label-sm text-on-surface-variant cursor-pointer">
+<input class="form-checkbox text-primary rounded border-outline-variant focus:ring-primary h-4 w-4" type="checkbox"/>
+                                 Required
+                             </label>
+</div>
+</div>
+<div class="p-lg flex flex-col gap-xl">
+<!-- Question Text Area -->
+<div class="flex flex-col gap-2">
+<label class="font-label-md text-label-md text-on-surface">Question Text</label>
+<div class="border border-outline-variant rounded-lg focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all overflow-hidden bg-surface-container-lowest">
+<!-- Rich Text Toolbar (Simplified) -->
+<div class="bg-surface border-b border-outline-variant px-2 py-1 flex items-center gap-1">
+<button class="p-1.5 text-on-surface-variant hover:bg-surface-container-high rounded"><span class="material-symbols-outlined text-sm">format_bold</span></button>
+<button class="p-1.5 text-on-surface-variant hover:bg-surface-container-high rounded"><span class="material-symbols-outlined text-sm">format_italic</span></button>
+<button class="p-1.5 text-on-surface-variant hover:bg-surface-container-high rounded"><span class="material-symbols-outlined text-sm">format_underlined</span></button>
+<div class="w-px h-4 bg-outline-variant mx-1"></div>
+<button class="p-1.5 text-on-surface-variant hover:bg-surface-container-high rounded"><span class="material-symbols-outlined text-sm">code</span></button>
+<button class="p-1.5 text-on-surface-variant hover:bg-surface-container-high rounded"><span class="material-symbols-outlined text-sm">image</span></button>
+</div>
+<textarea class="w-full border-none focus:ring-0 resize-y min-h-[120px] p-4 font-body-lg text-body-lg text-on-surface bg-transparent" placeholder="Type your question here...">Explain the concept of 'closure' in JavaScript and provide a brief example of how it might be used to encapsulate state.</textarea>
+</div>
+</div>
+<!-- Options Area -->
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<label class="font-label-md text-label-md text-on-surface">Options</label>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Select the correct answer(s)</span>
+</div>
+<!-- Option A -->
+<div class="flex items-start gap-3 group">
+<div class="mt-2 flex-shrink-0">
+<label class="relative flex items-center justify-center cursor-pointer">
+<input class="sr-only peer" name="correct_answer" type="radio"/>
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant peer-checked:border-tertiary peer-checked:bg-tertiary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary text-[16px] opacity-0 peer-checked:opacity-100">check</span>
+</div>
+</label>
+</div>
+<div class="flex-1 flex items-center gap-2">
+<span class="font-label-md text-label-md text-on-surface-variant bg-surface-container-high w-8 h-10 flex items-center justify-center rounded-lg flex-shrink-0 border border-transparent">A</span>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all" type="text" value="A closure is an inner function that has access to the outer (enclosing) function's variables—scope chain."/>
+<button class="p-2 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"><span class="material-symbols-outlined">close</span></button>
+</div>
+</div>
+<!-- Option B (Correct) -->
+<div class="flex items-start gap-3 group">
+<div class="mt-2 flex-shrink-0">
+<label class="relative flex items-center justify-center cursor-pointer">
+<input checked="" class="sr-only peer" name="correct_answer" type="radio"/>
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant peer-checked:border-tertiary peer-checked:bg-tertiary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary text-[16px] opacity-0 peer-checked:opacity-100">check</span>
+</div>
+</label>
+</div>
+<div class="flex-1 flex items-center gap-2">
+<span class="font-label-md text-label-md text-tertiary bg-tertiary-container w-8 h-10 flex items-center justify-center rounded-lg flex-shrink-0 border border-tertiary-fixed-dim">B</span>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all" type="text" value="A closure is a block of code that executes automatically when a specific event occurs in the DOM."/>
+<button class="p-2 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"><span class="material-symbols-outlined">close</span></button>
+</div>
+</div>
+<!-- Option C -->
+<div class="flex items-start gap-3 group">
+<div class="mt-2 flex-shrink-0">
+<label class="relative flex items-center justify-center cursor-pointer">
+<input class="sr-only peer" name="correct_answer" type="radio"/>
+<div class="w-6 h-6 rounded-full border-2 border-outline-variant peer-checked:border-tertiary peer-checked:bg-tertiary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-on-tertiary text-[16px] opacity-0 peer-checked:opacity-100">check</span>
+</div>
+</label>
+</div>
+<div class="flex-1 flex items-center gap-2">
+<span class="font-label-md text-label-md text-on-surface-variant bg-surface-container-high w-8 h-10 flex items-center justify-center rounded-lg flex-shrink-0 border border-transparent">C</span>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all" placeholder="Add option text..." type="text"/>
+<button class="p-2 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity"><span class="material-symbols-outlined">close</span></button>
+</div>
+</div>
+<button class="self-start flex items-center gap-2 font-label-md text-label-md text-primary hover:text-surface-tint mt-2 ml-10">
+<span class="material-symbols-outlined text-sm">add</span> Add Option
+                            </button>
+</div>
+<div class="h-px bg-outline-variant w-full"></div>
+<!-- Marking Area -->
+<div class="flex flex-wrap items-center gap-lg">
+<div class="flex flex-col gap-1 w-32">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Points / Marks</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary transition-all text-center" type="number" value="2"/>
+</div>
+<div class="flex flex-col gap-1 w-32">
+<label class="font-label-sm text-label-sm text-on-surface-variant">Negative Marks</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg px-3 py-2 font-body-md text-body-md text-on-surface focus:border-error focus:ring-1 focus:ring-error transition-all text-center" step="0.1" type="number" value="-0.5"/>
+</div>
+<div class="flex-1"></div>
+</div>
+</div>
+<!-- Bottom Actions -->
+<div class="bg-surface-container-low px-lg py-sm flex justify-end items-center gap-4 border-t border-outline-variant">
+<button class="p-2 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest rounded-full transition-colors tooltip relative group">
+<span class="material-symbols-outlined">content_copy</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-error hover:bg-error-container rounded-full transition-colors tooltip relative group">
+<span class="material-symbols-outlined">delete</span>
+</button>
+<div class="w-px h-6 bg-outline-variant mx-2"></div>
+<button class="font-label-md text-label-md bg-primary text-on-primary hover:bg-surface-tint px-6 py-2 rounded-lg transition-colors shadow-sm">
+                             Save Question
+                         </button>
+</div>
+</div>
+<!-- Collapsed Question Card 3 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-md flex items-start gap-4 hover:border-primary/50 transition-colors cursor-pointer group opacity-60">
+<div class="flex flex-col items-center gap-2 text-on-surface-variant cursor-grab">
+<span class="material-symbols-outlined opacity-50 group-hover:opacity-100">drag_indicator</span>
+<span class="font-label-md text-label-md font-bold bg-surface-container px-2 py-1 rounded">Q3</span>
+</div>
+<div class="flex-1">
+<p class="font-body-lg text-body-lg text-on-surface line-clamp-2 italic">New True/False Question...</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Add Button Area -->
+<div class="absolute bottom-md right-md md:bottom-xl md:right-xl z-50 flex flex-col items-end gap-3">
+<button class="w-14 h-14 bg-surface-container-highest text-on-surface-variant rounded-full shadow-md hover:bg-surface-variant transition-colors flex items-center justify-center hover:scale-105 active:scale-95 border border-outline-variant">
+<span class="material-symbols-outlined">library_add</span>
+</button>
+<button class="w-16 h-16 bg-primary text-on-primary rounded-full shadow-[0_10px_15px_-3px_rgba(0,0,0,0.1),_0_4px_6px_-2px_rgba(0,0,0,0.05)] hover:bg-surface-tint transition-transform hover:scale-105 active:scale-95 flex items-center justify-center">
+<span class="material-symbols-outlined text-[32px]">add</span>
+</button>
+</div>
+</main>
+</body></html>

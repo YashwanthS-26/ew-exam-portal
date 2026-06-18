@@ -1,0 +1,3 @@
+-- Insert default admin user
+-- Password: '12345678' needs to be hashed. For this seeding script, we can insert the raw hash, or we can write a node script that hashes the password and inserts it.
+-- Let's just create the user from the Node backend instead of SQL to ensure bcrypt compatibility.

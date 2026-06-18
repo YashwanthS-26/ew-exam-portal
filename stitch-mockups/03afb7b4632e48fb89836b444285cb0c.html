@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Neo Exam - Exam Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-container": "#006e4b",
+                        "on-error": "#ffffff",
+                        "on-tertiary-container": "#67f4b7",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed": "#c9e6ff",
+                        "secondary-container": "#39b8fd",
+                        "on-primary-container": "#dad7ff",
+                        "tertiary": "#005338",
+                        "tertiary-fixed-dim": "#4edea3",
+                        "surface-variant": "#d3e4fe",
+                        "surface-bright": "#f8f9ff",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#c3c0ff",
+                        "secondary-fixed-dim": "#89ceff",
+                        "on-secondary-fixed": "#001e2f",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "on-tertiary-fixed-variant": "#005236",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#4f46e5",
+                        "surface": "#f8f9ff",
+                        "surface-dim": "#cbdbf5",
+                        "tertiary-fixed": "#6ffbbe",
+                        "surface-tint": "#4d44e3",
+                        "on-secondary-fixed-variant": "#004c6e",
+                        "outline": "#777587",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed": "#e2dfff",
+                        "background": "#f8f9ff",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "surface-container-highest": "#d3e4fe",
+                        "inverse-surface": "#213145",
+                        "primary": "#3525cd",
+                        "on-surface": "#0b1c30",
+                        "on-primary-fixed": "#0f0069",
+                        "secondary": "#006591",
+                        "on-background": "#0b1c30",
+                        "surface-container-low": "#eff4ff",
+                        "outline-variant": "#c7c4d8",
+                        "error-container": "#ffdad6",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#e5eeff",
+                        "on-surface-variant": "#464555",
+                        "on-secondary-container": "#004666",
+                        "on-tertiary-fixed": "#002113",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-high": "#dce9ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-max": "1280px",
+                        "lg": "40px",
+                        "xl": "64px",
+                        "base": "4px",
+                        "md": "24px",
+                        "sm": "16px",
+                        "gutter": "24px",
+                        "xs": "8px"
+                    },
+                    "fontFamily": {
+                        "title-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "display": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-sm": ["Inter"],
+                        "headline-lg-mobile": ["Inter"]
+                    },
+                    "fontSize": {
+                        "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "label-md": ["14px", { "lineHeight": "20px", "fontWeight": "500" }],
+                        "display": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+        /* Custom Shadows for Level 2 and Level 3 Elevation */
+        .shadow-level-2 {
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 10px 15px -5px rgba(0,0,0,0.05);
+        }
+        .shadow-level-3 {
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden antialiased font-body-md text-body-md">
+<!-- SideNavBar (Hidden on md:hidden, visible on md:flex) -->
+<aside class="hidden md:flex docked left-0 h-screen w-64 bg-surface dark:bg-surface-dim text-primary dark:text-primary-fixed-dim flex-col border-r border-outline-variant dark:border-outline z-40 bg-surface-container-low dark:bg-surface-container-highest flat no shadows">
+<div class="p-md flex items-center space-x-3">
+<img alt="Neo Exam Logo" class="w-8 h-8 rounded" data-alt="A minimalist, modern geometric logo for an educational software platform called 'Neo Exam'. The logo should feature crisp lines, an indigo and slate color palette, and convey a sense of precision, authority, and technological advancement in a bright, light-mode setting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8Doc6Wt7BOa1pvSgetboTeEqUFexJz9W0H6ogCsroZUCXHF5mMBlvtjgu1UFYXXq14fuTvOv-6Vdm5ufLrEZ07DbrztyBwzZd5VwtJUyS084KQCQsBbPV5eDpPJzAUlFefU_gVBkx1jnyCim-DYom4QzlslO-6YZOtnnRvrMh4QEWGhk_N0X60p8EJLbO5YfjUDzy5GO24ha7GvRRaqPaOro8LqTDtkPaVNiqIKf9IjtRfT1jDzsM_1e2sNg92WymMU3NUplZTX0"/>
+<div>
+<h1 class="font-headline-md text-headline-md font-black text-primary dark:text-primary-fixed-dim leading-none">Neo Exam</h1>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Enterprise Admin</span>
+</div>
+</div>
+<div class="px-md mb-6">
+<button class="w-full bg-primary-container text-on-primary-container font-label-md text-label-md py-2 px-4 rounded-lg hover:bg-primary-container/90 transition-colors flex items-center justify-center space-x-2">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>Create New Exam</span>
+</button>
+</div>
+<nav class="flex-1 px-sm space-y-1 overflow-y-auto">
+<a class="flex items-center space-x-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high hover:bg-surface-container-high dark:hover:bg-inverse-surface transition-all duration-200 ease-in-out rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+<!-- Active State -->
+<a class="flex items-center space-x-3 px-3 py-2 bg-secondary-container dark:bg-secondary text-on-secondary-container dark:text-on-secondary font-bold rounded-lg transition-all duration-200 ease-in-out font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">assignment</span>
+<span>Exams</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high hover:bg-surface-container-high dark:hover:bg-inverse-surface transition-all duration-200 ease-in-out rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span>Results</span>
+</a>
+</nav>
+<div class="p-sm border-t border-outline-variant dark:border-outline space-y-1">
+<a class="flex items-center space-x-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-inverse-surface transition-all duration-200 ease-in-out rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span>Settings</span>
+</a>
+<a class="flex items-center space-x-3 px-3 py-2 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high dark:hover:bg-inverse-surface transition-all duration-200 ease-in-out rounded-lg font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">contact_support</span>
+<span>Support</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
+<!-- TopNavBar (Mobile only for brand, desktop relies on sidebar for brand, but we'll include as requested per JSON structure) -->
+<header class="bg-surface-container-lowest dark:bg-inverse-surface text-primary dark:text-primary-fixed-dim font-body-md text-body-md docked full-width top-0 sticky z-50 shadow-sm dark:shadow-none flex justify-between items-center w-full px-md h-16 shadow-sm cursor-pointer active:opacity-80 transition-all">
+<div class="flex items-center">
+<!-- Mobile Menu Button -->
+<button class="md:hidden mr-4 text-on-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors p-2 rounded-full">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<!-- Search Bar (on_left) -->
+<div class="hidden sm:flex items-center bg-surface-container-low rounded-full px-4 py-2 border border-outline-variant focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/20 transition-all max-w-md w-full">
+<span class="material-symbols-outlined text-on-surface-variant mr-2">search</span>
+<input class="bg-transparent border-none focus:ring-0 outline-none w-full text-on-surface font-body-md text-body-md placeholder-on-surface-variant" placeholder="Search exams..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-4">
+<button class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors p-2 rounded-full relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<button class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors p-2 rounded-full">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="h-8 w-8 rounded-full overflow-hidden border-2 border-surface-container-highest cursor-pointer">
+<img alt="Administrator Profile" class="w-full h-full object-cover" data-alt="A professional headshot of an administrator in a well-lit, modern office setting. The person looks approachable and confident, suitable for an educational software user profile picture. Light, natural lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtBQfOMQuC_1tQjWiLtbWFCpZ2RClsVRUT4A6mDjcqCMQPvVYeMZUs51-GmCXB3qbi9IqQVceIaUNhG0unOpLCdOs6guDlxcnOO98vdEXfclElMsISG7nLZB_fsISBaf8mP5LowHVPfo3x94SgiYpduOC0StQspJWf7IgtapuJ9fEw82FqJIxjtmc1-LhvuPDDQG3WyzCXvsuOspDCVjrQvvv5jemsBZsGhUyFOX3Q-K2KvP5fcvU0NdImpcBQ7Q6e1JbESK6Xxi8"/>
+</div>
+</div>
+</header>
+<!-- Page Content Canvas -->
+<main class="flex-1 overflow-y-auto p-4 md:p-lg lg:px-xl flex justify-center">
+<div class="w-full max-w-[1280px] space-y-6 md:space-y-8">
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface">Exam Management</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Manage and monitor all active and upcoming examinations.</p>
+</div>
+<button class="bg-primary-container text-on-primary-container font-label-md text-label-md py-2.5 px-5 rounded-lg hover:bg-primary-container/90 transition-colors shadow-sm flex items-center justify-center space-x-2 self-start sm:self-auto focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span>Create New Exam</span>
+</button>
+</div>
+<!-- Filters & Controls -->
+<div class="bg-surface rounded-xl shadow-level-2 p-md flex flex-col lg:flex-row gap-4 items-center justify-between">
+<!-- Search Input (Mobile/Redundant but good for specific table search) -->
+<div class="w-full lg:w-1/3 flex items-center bg-surface-bright rounded-lg px-3 py-2 border border-outline-variant focus-within:border-primary-container focus-within:ring-2 focus-within:ring-primary-container/20 transition-all">
+<span class="material-symbols-outlined text-on-surface-variant mr-2 text-[20px]">search</span>
+<input class="bg-transparent border-none focus:ring-0 outline-none w-full text-on-surface font-body-md text-body-md placeholder-on-surface-variant" placeholder="Search by name or code..." type="text"/>
+</div>
+<!-- Status Filters (Segmented Control style) -->
+<div class="w-full lg:w-auto flex bg-surface-container-low p-1 rounded-lg border border-outline-variant overflow-x-auto hide-scrollbar">
+<button class="px-4 py-1.5 rounded-md font-label-md text-label-md whitespace-nowrap bg-surface text-on-surface shadow-sm ring-1 ring-black/5">All</button>
+<button class="px-4 py-1.5 rounded-md font-label-md text-label-md whitespace-nowrap text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors">Active</button>
+<button class="px-4 py-1.5 rounded-md font-label-md text-label-md whitespace-nowrap text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors">Draft</button>
+<button class="px-4 py-1.5 rounded-md font-label-md text-label-md whitespace-nowrap text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors">Published</button>
+<button class="px-4 py-1.5 rounded-md font-label-md text-label-md whitespace-nowrap text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors">Ended</button>
+</div>
+</div>
+<!-- Data Table Card -->
+<div class="bg-surface rounded-xl shadow-level-2 overflow-hidden border border-surface-container-high">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-lowest border-b border-surface-container-high">
+<th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Exam Name</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Exam Code</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Start Time</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Duration</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Qs</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Status</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-high bg-surface">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="px-6 py-4">
+<div class="font-label-md text-label-md text-on-surface">Midterm Mathematics 101</div>
+<div class="font-body-md text-body-md text-on-surface-variant text-sm">Fall Semester 2023</div>
+</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface-variant">MTH-101-MT</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface-variant">Oct 15, 09:00 AM</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface-variant">120 min</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface-variant">50</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-sm text-label-sm bg-tertiary-container/20 text-tertiary">
+                                            Active
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right whitespace-nowrap">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded-full hover:bg-surface-container-low" title="Edit">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded-full hover:bg-surface-container-low ml-1" title="View Results">
+<span class="material-symbols-outlined text-[20px]">assessment</span>
+</button>
+<button class="text-on-surface-variant hover:text-error transition-colors p-1 rounded-full hover:bg-error-container ml-1" title="Delete">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="px-6 py-4">
+<div class="font-label-md text-label-md text-on-surface">Introduction to Physics Final</div>
+<div class="font-body-md text-body-md text-on-surface-variant text-sm">Spring Semester 2024</div>
+</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface-variant">PHY-102-FN</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface-variant">TBD</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface-variant">180 min</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface-variant">100</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-sm text-label-sm bg-surface-variant text-on-surface-variant">
+                                            Draft
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right whitespace-nowrap">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded-full hover:bg-surface-container-low" title="Edit">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded-full hover:bg-surface-container-low ml-1 opacity-50 cursor-not-allowed" title="View Results (Unavailable)">
+<span class="material-symbols-outlined text-[20px]">assessment</span>
+</button>
+<button class="text-on-surface-variant hover:text-error transition-colors p-1 rounded-full hover:bg-error-container ml-1" title="Delete">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-lowest transition-colors group">
+<td class="px-6 py-4">
+<div class="font-label-md text-label-md text-on-surface">Computer Science Basics Quiz 3</div>
+<div class="font-body-md text-body-md text-on-surface-variant text-sm">Fall Semester 2023</div>
+</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface-variant">CS-101-Q3</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface-variant">Sep 20, 10:00 AM</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface-variant">30 min</td>
+<td class="px-6 py-4 font-body-md text-body-md text-on-surface-variant">15</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-label-sm text-label-sm bg-error-container text-error">
+                                            Ended
+                                        </span>
+</td>
+<td class="px-6 py-4 text-right whitespace-nowrap">
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded-full hover:bg-surface-container-low" title="Edit">
+<span class="material-symbols-outlined text-[20px]">edit</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors p-1 rounded-full hover:bg-surface-container-low ml-1" title="View Results">
+<span class="material-symbols-outlined text-[20px]">assessment</span>
+</button>
+<button class="text-on-surface-variant hover:text-error transition-colors p-1 rounded-full hover:bg-error-container ml-1" title="Delete">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="bg-surface border-t border-surface-container-high px-6 py-4 flex items-center justify-between">
+<div class="font-body-md text-body-md text-on-surface-variant">
+                            Showing <span class="font-label-md text-on-surface">1</span> to <span class="font-label-md text-on-surface">3</span> of <span class="font-label-md text-on-surface">24</span> results
+                        </div>
+<div class="flex space-x-2">
+<button class="px-3 py-1 rounded border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-label-md text-label-md" disabled="">
+                                Previous
+                            </button>
+<button class="px-3 py-1 rounded bg-primary text-on-primary font-label-md text-label-md">1</button>
+<button class="px-3 py-1 rounded border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors font-label-md text-label-md">2</button>
+<button class="px-3 py-1 rounded border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors font-label-md text-label-md">3</button>
+<button class="px-3 py-1 rounded border border-outline-variant text-on-surface-variant hover:bg-surface-container-low transition-colors font-label-md text-label-md">
+                                Next
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
