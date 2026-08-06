@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, globalShortcut, Menu } from 'electron';
+import { app, BrowserWindow, ipcMain, globalShortcut, Menu, screen } from 'electron';
 import * as path from 'path';
 import { exec, execSync } from 'child_process';
 
@@ -43,11 +43,14 @@ function showTaskbar() {
 
 function createWindow() {
     Menu.setApplicationMenu(null);
-
+    
+    // Get primary display resolution dynamically
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width, height } = primaryDisplay.bounds;
 
     mainWindow = new BrowserWindow({
-        width: 1920,
-        height: 1080,
+        width,
+        height,
         icon: path.join(__dirname, '../dist/logo.png'),
         fullscreen: true,
         kiosk: true,          // TRUE kiosk: hides taskbar chrome at OS level
