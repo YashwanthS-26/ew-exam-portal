@@ -16,29 +16,24 @@ const BLOCKED_PROCESSES = [
 ];
 
 // PowerShell snippet to hide/show Windows taskbar using Win32 API
-// Use single quotes inside the class definition, or avoid them by using a script block
-const TASKBAR_PS_SCRIPT = `
-Add-Type -TypeDefinition "using System;using System.Runtime.InteropServices;public class WinBar{[DllImport(\\"user32.dll\\")]public static extern IntPtr FindWindow(string a,string b);[DllImport(\\"user32.dll\\")]public static extern bool ShowWindow(IntPtr h,int n);}" -ErrorAction SilentlyContinue;
-`;
-
 function hideTaskbar() {
     if (taskbarHidden) return;
     try {
-        const script = Buffer.from(`${TASKBAR_PS_SCRIPT};[WinBar]::ShowWindow([WinBar]::FindWindow('Shell_TrayWnd',$null),0)`, 'utf16le').toString('base64');
-        execSync(`powershell -EncodedCommand ${script}`, { timeout: 3000 });
+        execSync(`powershell -NoProfile -Command "Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class WinBar{[DllImport(\\"user32.dll\\")]public static extern IntPtr FindWindow(string a,string b);[DllImport(\\"user32.dll\\")]public static extern bool ShowWindow(IntPtr h,int n);}' -ErrorAction SilentlyContinue; [WinBar]::ShowWindow([WinBar]::FindWindow('Shell_TrayWnd',$null),0)"`, { timeout: 3000, windowsHide: true });
         taskbarHidden = true;
-    } catch (_) {
-        // Non-fatal: taskbar stays visible but exam still works
+    } catch (e) {
+        console.error("Failed to hide taskbar:", e);
     }
 }
 
 function showTaskbar() {
     if (!taskbarHidden) return;
     try {
-        const script = Buffer.from(`${TASKBAR_PS_SCRIPT};[WinBar]::ShowWindow([WinBar]::FindWindow('Shell_TrayWnd',$null),1)`, 'utf16le').toString('base64');
-        execSync(`powershell -EncodedCommand ${script}`, { timeout: 3000 });
+        execSync(`powershell -NoProfile -Command "Add-Type -TypeDefinition 'using System;using System.Runtime.InteropServices;public class WinBar{[DllImport(\\"user32.dll\\")]public static extern IntPtr FindWindow(string a,string b);[DllImport(\\"user32.dll\\")]public static extern bool ShowWindow(IntPtr h,int n);}' -ErrorAction SilentlyContinue; [WinBar]::ShowWindow([WinBar]::FindWindow('Shell_TrayWnd',$null),1)"`, { timeout: 3000, windowsHide: true });
         taskbarHidden = false;
-    } catch (_) { }
+    } catch (e) {
+        console.error("Failed to show taskbar:", e);
+    }
 }
 
 function createWindow() {
@@ -48,7 +43,7 @@ function createWindow() {
         icon: path.join(__dirname, '../dist/logo.png'),
         fullscreen: true,
         kiosk: true,          // TRUE kiosk: hides taskbar chrome at OS level
-        skipTaskbar: false,
+        skipTaskbar: true,
         frame: false,
         thickFrame: false,
         autoHideMenuBar: true,
