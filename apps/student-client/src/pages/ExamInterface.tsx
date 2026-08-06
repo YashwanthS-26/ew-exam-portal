@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io, Socket } from 'socket.io-client';
+import { saveAnswerLocal, markAnswersSynced, getAllAnswersForAttempt } from '../lib/db';
 
-const SOCKET_URL = 'https://ew-exam-portal-backend.onrender.com';
+const SOCKET_URL = (import.meta as any).env?.VITE_SOCKET_URL || 'https://ew-exam-portal-backend.onrender.com';
+const API_URL = (import.meta as any).env?.VITE_API_URL || 'https://ew-exam-portal-backend.onrender.com';
 
 interface Option {
     id: string;
@@ -49,6 +51,10 @@ export default function ExamInterface() {
 
     const [currentIdx, setCurrentIdx] = useState(0);
     const [answers, setAnswers] = useState<Record<string, string | null>>({});
+    // IMPORTANT: answersRef must be declared at component top, NOT after conditional returns.
+    // handleSubmit and SyncWorker read from this ref to always get the latest answers.
+    const answersRef = useRef<Record<string, string | null>>({});
+
     const [markedForReview, setMarkedForReview] = useState<Set<string>>(new Set());
     const [timeLeft, setTimeLeft] = useState<number>(0);
     const [submitted, setSubmitted] = useState(false);
@@ -57,6 +63,8 @@ export default function ExamInterface() {
     const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
     const [violations, setViolations] = useState<string[]>([]);
     const [showViolationBanner, setShowViolationBanner] = useState(false);
+    const [syncQueueSize, setSyncQueueSize] = useState(0);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const autosaveRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
 
@@ -66,6 +74,14 @@ export default function ExamInterface() {
             navigate('/');
         }
     }, [session, navigate]);
+
+    // Load initial answers from IndexedDB
+    useEffect(() => {
+        if (!session) return;
+        getAllAnswersForAttempt(session.attemptId).then(loaded => {
+            setAnswers(prev => ({ ...prev, ...loaded }));
+        });
+    }, [session]);
 
     // Start lockdown when exam loads
     useEffect(() => {
@@ -178,37 +194,59 @@ export default function ExamInterface() {
         };
     }, [session]);
 
-    const saveAnswer = useCallback((questionId: string, option: string | null, answeredCount: number) => {
-        const socket = socketRef.current;
-        if (!socket || !session) return;
-        socket.emit('save_answer', {
-            attemptId: session.attemptId,
-            questionId,
-            selectedOption: option,
-            examCode: session.exam.exam_code,
-            answered: answeredCount,
-        });
+    const saveAnswer = useCallback((questionId: string, option: string | null) => {
+        if (!session) return;
+        saveAnswerLocal(session.attemptId, questionId, option);
     }, [session]);
 
-    // Autosave every 10 seconds (placed here so saveAnswer is in scope)
+    // HTTP-based sync worker: every 5s, POST all answers directly to Supabase via backend REST API
     useEffect(() => {
         if (submitted || !session) return;
-        autosaveRef.current = setInterval(() => {
-            Object.entries(answers).forEach(([questionId, option]) => {
-                if (option !== null && option !== undefined) {
-                    const count = Object.values(answers).filter(v => v !== null).length;
-                    saveAnswer(questionId, option, count);
+
+        autosaveRef.current = setInterval(async () => {
+            try {
+                // Get ALL current answers (from React state via a ref — see answersRef below)
+                const allAnswers = Object.entries(answersRef.current)
+                    .map(([questionId, selectedOption]) => ({ questionId, selectedOption: selectedOption ?? null }));
+
+                if (allAnswers.length === 0) return;
+
+                setSyncQueueSize(allAnswers.length);
+
+                const res = await fetch(`${API_URL}/api/attempts/${session.attemptId}/answers`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ answers: allAnswers }),
+                    signal: AbortSignal.timeout(8000),
+                });
+
+                if (res.ok) {
+                    setSyncQueueSize(0);
+                    // Notify monitor dashboard via socket (fire and forget)
+                    const socket = socketRef.current;
+                    if (socket?.connected && session.exam.exam_code) {
+                        socket.emit('sync_batch', {
+                            attemptId: session.attemptId,
+                            examCode: session.exam.exam_code,
+                            answers: allAnswers,
+                        }, () => {}); // ACK ignored — HTTP is the source of truth
+                    }
                 }
-            });
-        }, 10000);
-        return () => { if (autosaveRef.current) clearInterval(autosaveRef.current); };
-    }, [submitted, session, answers, saveAnswer]);
+            } catch (e) {
+                // Network error — will retry next cycle, answers are safe in IndexedDB
+                console.warn('[SyncWorker] HTTP sync failed, will retry:', e);
+            }
+        }, 5000);
+
+        return () => {
+            if (autosaveRef.current) clearInterval(autosaveRef.current);
+        };
+    }, [submitted, session]);
 
     const handleSelectOption = (questionId: string, optId: string) => {
         setAnswers(prev => {
             const next = { ...prev, [questionId]: optId };
-            const count = Object.values(next).filter(v => v !== null).length;
-            saveAnswer(questionId, optId, count);
+            saveAnswer(questionId, optId);
             return next;
         });
     };
@@ -216,8 +254,7 @@ export default function ExamInterface() {
     const handleClearAnswer = (questionId: string) => {
         setAnswers(prev => {
             const next = { ...prev, [questionId]: null };
-            const count = Object.values(next).filter(v => v !== null).length;
-            saveAnswer(questionId, null, count);
+            saveAnswer(questionId, null);
             return next;
         });
     };
@@ -231,10 +268,51 @@ export default function ExamInterface() {
         });
     };
 
-    const handleSubmit = (auto = false, reason = 'normal') => {
+    const handleSubmit = async (auto = false, reason = 'normal') => {
         if (submitted) return;
-        setSubmitted(true);
+        setIsSubmitting(true);
         setShowSubmitConfirm(false);
+        
+        // Prevent background sync from racing with the final submit sync
+        if (autosaveRef.current) clearInterval(autosaveRef.current);
+
+        // GUARANTEED SAVE: POST all current answers directly to Supabase via HTTP
+        const allAnswers = Object.entries(answersRef.current)
+            .map(([questionId, selectedOption]) => ({ questionId, selectedOption: selectedOption ?? null }));
+
+        if (allAnswers.length > 0) {
+            let saved = false;
+            let retries = 0;
+            const maxRetries = 5;
+            
+            while (!saved && retries < maxRetries) {
+                try {
+                    const res = await fetch(`${API_URL}/api/attempts/${session!.attemptId}/answers`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ answers: allAnswers }),
+                        signal: AbortSignal.timeout(10000), // 10s timeout to survive Render cold starts
+                    });
+                    if (res.ok) saved = true;
+                    else throw new Error(`HTTP ${res.status}`);
+                } catch (e) {
+                    retries++;
+                    if (retries < maxRetries) {
+                        // Exponential backoff: 1s, 2s, 4s, 8s...
+                        const backoff = Math.min(1000 * Math.pow(2, retries - 1), 8000);
+                        console.warn(`[Submit] HTTP sync failed. Retrying in ${backoff}ms... (Attempt ${retries}/${maxRetries})`);
+                        await new Promise(r => setTimeout(r, backoff));
+                    }
+                }
+            }
+            if (!saved) {
+                console.error('[Submit] CRITICAL: Could not save answers via HTTP after maximum retries');
+                // Even on critical failure, we proceed to submit so the student isn't permanently locked out,
+                // but we rely on local DB as the fallback write-ahead log.
+            }
+        }
+
+        // Now emit submit to the socket
         const socket = socketRef.current;
         if (socket && session) {
             socket.emit('submit_exam', {
@@ -246,9 +324,17 @@ export default function ExamInterface() {
                 if (data.result && session.exam.show_results_to_students) {
                     setResult(data.result);
                 }
+                setSubmitted(true);
+                setIsSubmitting(false);
+                sessionStorage.removeItem('examSession');
             });
         }
-        sessionStorage.removeItem('examSession');
+        // Hard fallback: always complete submit within 5 seconds
+        setTimeout(() => {
+            setSubmitted(true);
+            setIsSubmitting(false);
+            sessionStorage.removeItem('examSession');
+        }, 5000);
     };
 
     // Auto-submit on network loss
@@ -285,7 +371,12 @@ export default function ExamInterface() {
 
     const questions = session.questions;
     const currentQ = questions[currentIdx];
-    const answeredCount = Object.values(answers).filter(v => v !== null).length;
+    // answersRef is declared at component top — this effect keeps it in sync with state
+    useEffect(() => {
+        answersRef.current = answers;
+    }, [answers]);
+
+    const answeredCount = Object.values(answers).filter(v => v !== null && v !== undefined).length;
 
     // ─── Submitted Screen ──────────────────────────────────────────────────
     if (submitted) {
@@ -340,10 +431,10 @@ export default function ExamInterface() {
     };
 
     const statusClasses: Record<QuestionStatus, string> = {
-        current: 'bg-orange-500 text-white ring-2 ring-orange-400 ring-offset-1 ring-offset-slate-800',
-        answered: 'bg-green-500 text-white',
-        marked_review: 'bg-orange-400 text-white',
-        not_visited: 'bg-white/10 text-white/50 hover:bg-white/20',
+        current:       'bg-blue-500 text-white ring-2 ring-blue-300 ring-offset-2 ring-offset-slate-900 scale-110 shadow-lg shadow-blue-500/40',
+        answered:      'bg-emerald-500 text-white shadow-sm shadow-emerald-500/40 hover:bg-emerald-400',
+        marked_review: 'bg-red-500 text-white shadow-sm shadow-red-500/40 hover:bg-red-400',
+        not_visited:   'bg-slate-700 text-slate-300 hover:bg-slate-600 border border-slate-600',
     };
 
     const timerClass = timeLeft < 300 ? 'text-red-400' : timeLeft < 600 ? 'text-orange-400' : 'text-green-400';
@@ -359,6 +450,19 @@ export default function ExamInterface() {
                 <div className={`flex items-center gap-2 font-mono text-xl font-bold ${timerClass}`}>
                     <span className="material-symbols-outlined text-[20px]">timer</span>
                     {formatTime(timeLeft)}
+                </div>
+                <div className="flex items-center gap-2 ml-4 mr-4 text-xs font-semibold shrink-0" style={{ width: '120px' }}>
+                    {syncQueueSize > 0 ? (
+                        <span className="text-orange-400 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[16px] animate-spin">sync</span>
+                            Syncing {syncQueueSize}...
+                        </span>
+                    ) : (
+                        <span className="text-green-400 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[16px]">cloud_done</span>
+                            Saved
+                        </span>
+                    )}
                 </div>
                 <button
                     onClick={() => setShowSubmitConfirm(true)}
@@ -387,6 +491,17 @@ export default function ExamInterface() {
                     <button onClick={() => setShowViolationBanner(false)} className="ml-auto text-white/70 hover:text-white">
                         <span className="material-symbols-outlined text-[16px]">close</span>
                     </button>
+                </div>
+            )}
+
+            {/* ─── Submitting Overlay ───────────────────────────────────────── */}
+            {isSubmitting && (
+                <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+                    <div className="bg-slate-800 border border-white/20 rounded-2xl p-6 shadow-2xl flex flex-col items-center">
+                        <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                        <h3 className="text-white font-bold text-lg">Submitting Exam...</h3>
+                        <p className="text-white/60 text-sm mt-1">Syncing remaining answers to cloud.</p>
+                    </div>
                 </div>
             )}
 
@@ -499,11 +614,24 @@ export default function ExamInterface() {
                 {/* ─── Sidebar Navigator ────────────────────────────────────── */}
                 <aside className="w-64 border-l border-white/10 bg-slate-800/50 flex flex-col shrink-0 overflow-hidden">
                     <div className="p-4 border-b border-white/10">
-                        <h3 className="font-semibold text-white text-sm mb-2">Question Navigator</h3>
-                        <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-white/50">
-                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-green-500 inline-block" /> Answered</span>
-                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-orange-400 inline-block" /> Review</span>
-                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-orange-500 inline-block" /> Current</span>
+                        <h3 className="font-semibold text-white text-sm mb-3">Question Navigator</h3>
+                        <div className="flex flex-col gap-1.5 text-xs">
+                            <span className="flex items-center gap-2 text-slate-300">
+                                <span className="w-3 h-3 rounded bg-emerald-500 inline-block shadow shadow-emerald-500/50" />
+                                Answered
+                            </span>
+                            <span className="flex items-center gap-2 text-slate-300">
+                                <span className="w-3 h-3 rounded bg-red-500 inline-block shadow shadow-red-500/50" />
+                                Marked for Review
+                            </span>
+                            <span className="flex items-center gap-2 text-slate-300">
+                                <span className="w-3 h-3 rounded bg-blue-500 inline-block shadow shadow-blue-500/50" />
+                                Current
+                            </span>
+                            <span className="flex items-center gap-2 text-slate-300">
+                                <span className="w-3 h-3 rounded bg-slate-700 border border-slate-600 inline-block" />
+                                Not Visited
+                            </span>
                         </div>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4">

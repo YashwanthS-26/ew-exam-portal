@@ -1,6 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import { supabase } from '../config/supabase';
 import { evaluateExam } from '../controllers/evaluationController';
+import { flushAttemptToSupabase } from '../redisSyncWorker';
 
 // Track active exams and connected students in memory for speed
 export const liveExams: Map<string, { examId: string; examCode: string; startedAt: string; students: Map<string, any> }> = new Map();
@@ -72,11 +73,12 @@ export const setupSocketHandlers = (io: Server) => {
         socket.on('exam:end', async (payload: { examId: string; examCode: string }) => {
             const { examId, examCode } = payload;
 
-            // Force submit all pending attempts
+            // Force submit all pending attempts - flush Redis first to ensure all answers are saved
             const exam = liveExams.get(examCode);
             if (exam) {
                 for (const [, student] of exam.students) {
                     if (student.status === 'IN_PROGRESS' && student.attemptId) {
+                        await flushAttemptToSupabase(student.attemptId);
                         await evaluateExam(student.attemptId);
                     }
                 }
@@ -97,6 +99,7 @@ export const setupSocketHandlers = (io: Server) => {
 
         // Admin force-submits a specific student
         socket.on('force_submit', async (payload: { attemptId: string; socketId: string; examCode: string }) => {
+            await flushAttemptToSupabase(payload.attemptId);
             await evaluateExam(payload.attemptId);
             if (payload.socketId) {
                 io.to(payload.socketId).emit('force_submit');
@@ -145,6 +148,12 @@ export const setupSocketHandlers = (io: Server) => {
                 .update({ socket_id: socket.id, status: 'IN_PROGRESS' })
                 .eq('id', payload.attemptId);
 
+            // Get accurate answered count from DB in case of reconnect
+            const { count: answeredCount } = await supabase
+                .from('student_answers')
+                .select('*', { count: 'exact', head: true })
+                .eq('attempt_id', payload.attemptId);
+
             const studentInfo = {
                 attemptId: payload.attemptId,
                 name: payload.name,
@@ -152,7 +161,7 @@ export const setupSocketHandlers = (io: Server) => {
                 socketId: socket.id,
                 joinedAt: new Date().toISOString(),
                 status: 'IN_PROGRESS',
-                answered: 0,
+                answered: answeredCount || 0,
             };
 
             // Update live map
@@ -166,39 +175,39 @@ export const setupSocketHandlers = (io: Server) => {
             io.to(`monitor:${payload.examCode}`).emit('student_joined', studentInfo);
         });
 
-        socket.on('save_answer', async (payload: { attemptId: string; questionId: string; selectedOption: string | null; examCode: string; answered: number }) => {
+        socket.on('sync_batch', async (payload: { attemptId: string; examCode: string; answers: { questionId: string; selectedOption: string | null }[] }, callback: (err: any, res?: any) => void) => {
+            // sync_batch is now MONITORING ONLY — HTTP POST /api/attempts/:id/answers is the guaranteed save path.
+            // This event only updates the live monitoring dashboard answered-count.
             try {
-                const { error } = await supabase.from('student_answers').upsert({
-                    attempt_id: payload.attemptId,
-                    question_id: payload.questionId,
-                    selected_option: payload.selectedOption,
-                    saved_at: new Date().toISOString()
-                }, { onConflict: 'attempt_id, question_id' });
+                if (callback) {
+                    callback(null, { success: true });
+                }
 
-                if (error) throw error;
-                socket.emit('autosave', { status: 'success', questionId: payload.questionId });
-
-                // Update progress in live map
-                if (payload.examCode) {
+                if (payload.examCode && payload.answers) {
                     const exam = liveExams.get(payload.examCode);
                     if (exam) {
                         const student = exam.students.get(payload.attemptId);
-                        if (student && payload.answered !== undefined) {
-                            student.answered = payload.answered;
+                        if (student) {
+                            const nonNullCount = payload.answers.filter(a => a.selectedOption !== null).length;
+                            student.answered = Math.max(student.answered || 0, nonNullCount);
                         }
                     }
                     io.to(`monitor:${payload.examCode}`).emit('student_progress', {
                         attemptId: payload.attemptId,
-                        answered: payload.answered,
+                        answered: exam?.students.get(payload.attemptId)?.answered ?? 0,
                     });
                 }
             } catch (err) {
-                console.error('Save answer error via socket:', err);
+                console.error('sync_batch error:', err);
+                if (callback) callback(null, { success: true }); // never fail the client
             }
         });
 
+
         socket.on('submit_exam', async (payload: { attemptId: string; examCode: string; reason?: string }) => {
             const reason = payload.reason || 'normal';
+            // Flush any pending Redis answers BEFORE scoring to ensure all answers are counted
+            await flushAttemptToSupabase(payload.attemptId);
             const result = await evaluateExam(payload.attemptId);
 
             // Store submit reason

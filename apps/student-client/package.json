@@ -1,12 +1,13 @@
 {
-  "name": "student-client",
+  "name": "ew-shiken-student-client",
+  "productName": "EW SHIKEN",
   "private": true,
   "version": "0.0.0",
-  "author": "EW Exam Portal",
-  "description": "Student Client for EW Exam Portal",
+  "author": "EW SHIKEN",
+  "description": "Student Client for EW SHIKEN",
   "main": "dist-electron/main.js",
   "build": {
-    "appId": "com.ewexamportal.studentclient",
+    "appId": "com.ewshiken.studentclient",
     "win": {
       "target": "nsis",
       "icon": "public/logo.png"
@@ -45,6 +46,7 @@
   },
   "dependencies": {
     "clsx": "^2.1.1",
+    "idb": "^8.0.3",
     "lucide-react": "^1.20.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

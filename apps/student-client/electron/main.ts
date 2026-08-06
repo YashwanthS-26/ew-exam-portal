@@ -59,7 +59,7 @@ function createWindow() {
         minimizable: false,
         closable: false,
         alwaysOnTop: true,
-        title: 'EW Exam Portal - Student',
+        title: 'EW SHIKEN - Student',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             nodeIntegration: false,

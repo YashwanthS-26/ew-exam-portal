@@ -4,23 +4,37 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'https://ew-exam-portal-ba
 
 class SocketService {
   private socket: Socket | null = null;
+  private monitorExamCode: string | null = null;
 
   connect() {
     if (!this.socket) {
       this.socket = io(SOCKET_URL, {
         transports: ['websocket'],
         autoConnect: true,
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
       });
 
       this.socket.on('connect', () => {
         console.log('Connected to real-time server:', this.socket?.id);
+        // Re-join admin room on every reconnect (covers server restarts)
+        this.socket?.emit('admin_join');
+        if (this.monitorExamCode) {
+          this.socket?.emit('admin_monitor_exam', { examCode: this.monitorExamCode });
+        }
       });
 
       this.socket.on('disconnect', () => {
-        console.log('Disconnected from real-time server');
+        console.log('Disconnected from real-time server — will auto-reconnect');
       });
     }
     return this.socket;
+  }
+
+  setMonitorExamCode(examCode: string | null) {
+    this.monitorExamCode = examCode;
   }
 
   disconnect() {
@@ -28,6 +42,7 @@ class SocketService {
       this.socket.disconnect();
       this.socket = null;
     }
+    this.monitorExamCode = null;
   }
 
   getSocket(): Socket | null {

@@ -137,3 +137,39 @@ export const getQuestionsForAttempt = async (req: Request, res: Response) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 };
+
+// Bulk save answers directly to Supabase via HTTP — the guaranteed reliable save path
+export const saveAnswers = async (req: Request, res: Response) => {
+    try {
+        const { attemptId } = req.params;
+        const { answers } = req.body as {
+            answers: { questionId: string; selectedOption: string | null }[];
+        };
+
+        if (!attemptId || !answers || !Array.isArray(answers) || answers.length === 0) {
+            return res.status(400).json({ error: 'Invalid payload' });
+        }
+
+        const upsertPayload = answers.map(a => ({
+            attempt_id: attemptId,
+            question_id: a.questionId,
+            selected_option: a.selectedOption,
+            saved_at: new Date().toISOString(),
+        }));
+
+        const { error } = await supabase
+            .from('student_answers')
+            .upsert(upsertPayload, { onConflict: 'attempt_id, question_id' });
+
+        if (error) {
+            console.error('[saveAnswers] Supabase upsert error:', error);
+            return res.status(500).json({ error: 'Failed to save answers' });
+        }
+
+        return res.status(200).json({ success: true, saved: answers.length });
+
+    } catch (err) {
+        console.error('[saveAnswers] Error:', err);
+        return res.status(500).json({ error: 'Internal server error' });
+    }
+};

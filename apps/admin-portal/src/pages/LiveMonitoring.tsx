@@ -54,6 +54,9 @@ export default function LiveMonitoring() {
         const socket = socketService.connect();
         if (!socket) return;
 
+        // Register exam code so reconnects re-subscribe automatically
+        socketService.setMonitorExamCode(exam.exam_code);
+
         socket.emit('admin_join');
         socket.emit('admin_monitor_exam', { examCode: exam.exam_code });
 
@@ -94,6 +97,7 @@ export default function LiveMonitoring() {
             socket.off('student_update');
             socket.off('student_progress');
             socket.off('exam:started');
+            socketService.setMonitorExamCode(null);
         };
     }, [exam?.exam_code]);
 

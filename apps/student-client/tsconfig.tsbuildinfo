@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/counter.ts","./src/main.tsx","./src/pages/examinterface.tsx","./src/pages/studentwelcome.tsx"],"version":"6.0.3"}
+{"root":["./src/app.tsx","./src/counter.ts","./src/main.tsx","./src/lib/db.ts","./src/pages/examinterface.tsx","./src/pages/studentwelcome.tsx"],"version":"6.0.3"}
