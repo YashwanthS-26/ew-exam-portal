@@ -44,23 +44,14 @@ function showTaskbar() {
 function createWindow() {
     Menu.setApplicationMenu(null);
     
-    // Get primary display resolution dynamically
-    const primaryDisplay = screen.getPrimaryDisplay();
-    const { width, height } = primaryDisplay.bounds;
-
     mainWindow = new BrowserWindow({
-        width,
-        height,
         icon: path.join(__dirname, '../dist/logo.png'),
         fullscreen: true,
         kiosk: true,          // TRUE kiosk: hides taskbar chrome at OS level
         skipTaskbar: false,
-        resizable: false,
         frame: false,
-        movable: false,
-        maximizable: false,
-        minimizable: false,
-        closable: false,
+        thickFrame: false,
+        autoHideMenuBar: true,
         alwaysOnTop: true,
         title: 'EW SHIKEN - Student',
         webPreferences: {
