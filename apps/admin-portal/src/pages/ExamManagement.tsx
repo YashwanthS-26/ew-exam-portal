@@ -17,7 +17,9 @@ import {
     UploadCloud, 
     X, 
     AlertTriangle,
-    FileText
+    FileText,
+    List,
+    Eye
 } from 'lucide-react';
 
 interface Exam {
