@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../lib/api';
-import { Mail, Lock, ArrowRight, Database } from 'lucide-react';
 
 export default function AdminLogin() {
     const navigate = useNavigate();
@@ -29,81 +28,92 @@ export default function AdminLogin() {
     };
 
     return (
-        <div className="bg-slate-50 text-slate-900 antialiased h-screen w-full flex overflow-hidden">
-            {/* Left Side: Login Form Canvas */}
-            <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-12 md:px-16 py-12 bg-white z-10 relative shadow-[10px_0_15px_-5px_rgba(0,0,0,0.02)]">
-                <div className="max-w-[440px] w-full mx-auto">
-                    {/* Brand Anchor */}
-                    <div className="mb-12 flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center border border-slate-200">
-                            <Database className="text-primary" size={24} />
-                        </div>
-                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">EW SHIKEN</h1>
+        <div className="min-h-screen bg-[#F8F9FA] flex flex-col relative px-4">
+            {/* Top Left Logo */}
+            <div className="absolute top-6 left-6 md:top-10 md:left-12 flex items-center gap-3">
+                <img src="/logo.png" alt="EW SHIKEN" className="h-8 object-contain" />
+            </div>
+
+            {/* Centered Login Card */}
+            <div className="flex-1 flex flex-col justify-center items-center">
+                <div className="bg-white rounded-xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-slate-100 p-8 md:p-10 w-full max-w-[480px]">
+                    <div className="mb-8">
+                        <p className="text-slate-500 text-sm font-medium mb-1">Please enter your details</p>
+                        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Welcome back</h1>
                     </div>
-                    {/* Intent Header */}
-                    <div className="mb-10">
-                        <h2 className="text-3xl font-bold text-slate-900 mb-2 tracking-tight">Welcome Back</h2>
-                        <p className="text-base font-medium text-slate-500">Sign in to the enterprise admin portal to manage assessments.</p>
-                    </div>
-                    {/* Transactional Form */}
+
                     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                         {/* Email Input */}
-                        <div className="flex flex-col gap-2 relative">
-                            <label className="text-sm font-semibold text-slate-700" htmlFor="email">Email Address</label>
-                            <div className="relative flex items-center">
-                                <Mail className="absolute left-3.5 text-slate-400 pointer-events-none" size={18} />
-                                <input
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
-                                    id="email"
-                                    name="email"
-                                    placeholder="admin@gmail.com"
-                                    required
-                                    type="email"
-                                />
-                            </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-slate-700" htmlFor="email">Email address</label>
+                            <input
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                                id="email"
+                                name="email"
+                                placeholder="Enter your email"
+                                required
+                                type="email"
+                            />
                         </div>
+
                         {/* Password Input */}
-                        <div className="flex flex-col gap-2 relative">
-                            <label className="text-sm font-semibold text-slate-700" htmlFor="password">Password</label>
-                            <div className="relative flex items-center">
-                                <Lock className="absolute left-3.5 text-slate-400 pointer-events-none" size={18} />
-                                <input
-                                    value={password}
-                                    onChange={e => setPassword(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
-                                    id="password"
-                                    name="password"
-                                    placeholder="••••••••"
-                                    required
-                                    type="password"
-                                />
-                            </div>
+                        <div className="flex flex-col gap-2">
+                            <label className="text-sm font-medium text-slate-700" htmlFor="password">Password</label>
+                            <input
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all"
+                                id="password"
+                                name="password"
+                                placeholder="••••••••"
+                                required
+                                type="password"
+                            />
                         </div>
+
+                        {/* Remember Me & Forgot Password */}
+                        <div className="flex items-center justify-between mt-1">
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    className="w-4 h-4 rounded border-slate-300 text-primary focus:ring-primary accent-primary" 
+                                />
+                                <span className="text-sm font-medium text-slate-600">Remember for 30 days</span>
+                            </label>
+                            <button type="button" onClick={() => toast("Forgot password functionality coming soon")} className="text-sm font-medium text-primary hover:underline">
+                                Forgot password
+                            </button>
+                        </div>
+
                         {/* Primary Action */}
                         <button
                             disabled={loading}
-                            className="mt-4 w-full bg-primary text-white py-3 px-6 rounded-lg text-sm font-bold hover:bg-black active:scale-[0.99] transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                            className="mt-2 w-full bg-primary text-white py-3 px-6 rounded-lg text-sm font-medium hover:bg-primary/90 active:scale-[0.99] transition-all disabled:opacity-60"
                             type="submit"
                         >
-                            {loading ? 'Signing In...' : 'Sign In'}
-                            <ArrowRight size={18} />
+                            {loading ? 'Signing in...' : 'Sign in'}
                         </button>
                     </form>
-                    {/* Support Footer */}
-                    <div className="mt-12 pt-8 border-t border-slate-100 text-center">
-                        <p className="text-xs font-semibold text-slate-400 bg-slate-50 inline-block px-3 py-1.5 rounded-md border border-slate-200">
-                            Demo: admin@gmail.com / 12345678
+
+                    {/* Bottom Links */}
+                    <div className="mt-8 text-center">
+                        <p className="text-sm font-medium text-slate-500">
+                            Don't have an account?{' '}
+                            <button type="button" onClick={() => toast("Please contact super-admin to create an account")} className="text-primary hover:underline">
+                                Sign up
+                            </button>
                         </p>
                     </div>
                 </div>
-            </div>
-            {/* Right Side: Environmental Visual */}
-            <div className="hidden lg:flex w-1/2 bg-slate-50 relative overflow-hidden items-center justify-center border-l border-slate-200">
-                <div className="absolute inset-0 w-full h-full bg-cover bg-center opacity-[0.85] transition-opacity duration-1000 mix-blend-multiply" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCwKtBRavz1UgLm6yzO_3xqLv7EVTdX49Fb1CNcUZTS8HHvhPZgRkgpPuuSxxa6o1qPKCXwd2Atb9xZf2KHROQjsxFLMIKNjOReqx9kuUqGwEjne2uasDX5UTCTm3_Mr5bM_TAzrFdL-srp8C4uFb7GRSZXFSVCxe0WX_HG-1AS0nHesx3L28HbcC-nsuEqa6HqihKJCqtSBC12-Yj6Ofy2a6driOzw_XIZgWFQhoORkLf9Vt3muGct2J-nZrzFYKrlbPgkyJXb1JY')" }}>
+
+                {/* Demo Credentials */}
+                <div className="mt-8 text-center">
+                    <p className="text-xs font-semibold text-slate-400 bg-white inline-block px-3 py-1.5 rounded-md border border-slate-200 shadow-sm">
+                        Demo: admin@gmail.com / 12345678
+                    </p>
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 via-slate-100/30 to-transparent pointer-events-none"></div>
             </div>
         </div>
     );
