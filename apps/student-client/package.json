@@ -10,7 +10,7 @@
     "appId": "com.ewshiken.studentclient",
     "win": {
       "target": "nsis",
-      "icon": "public/logo.png"
+      "icon": "public/icon.png"
     },
     "directories": {
       "output": "dist-app"

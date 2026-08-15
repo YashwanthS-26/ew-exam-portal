@@ -53,10 +53,12 @@ app.get('/api/ready', async (req, res) => {
 import authRoutes from './routes/authRoutes';
 import examRoutes from './routes/examRoutes';
 import studentRoutes from './routes/studentRoutes';
+import questionBankRoutes from './routes/questionBankRoutes';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/attempts', studentRoutes);
+app.use('/api/question-bank', questionBankRoutes);
 
 import { initRedis } from './redisClient';
 import { startRedisSyncWorker } from './redisSyncWorker';

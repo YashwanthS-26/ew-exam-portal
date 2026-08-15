@@ -3,7 +3,7 @@ import {
     createExam, getExams, getExam, publishExam, getStats,
     addQuestions, getExamQuestions, updateExam, getResults, getAllResults,
     deleteExam, addSingleQuestion, deleteSingleQuestion, joinExam,
-    validateExam, grantReattempt
+    validateExam, grantReattempt, resumeExam
 } from '../controllers/examController';
 import { authMiddleware } from '../middleware/authMiddleware';
 
@@ -38,5 +38,8 @@ router.get('/:id/results', authMiddleware, getResults);
 
 // Grant re-attempt to a student
 router.post('/:id/reattempt', authMiddleware, grantReattempt);
+
+// Resume exam for a student
+router.post('/:id/resume', authMiddleware, resumeExam);
 
 export default router;

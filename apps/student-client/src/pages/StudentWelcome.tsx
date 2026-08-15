@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+    ShieldAlert, Loader2, XCircle, CheckCircle2,
+    RefreshCw, LogOut, ChevronRight, Hash, User,
+    Building, FileText, Monitor, CheckCircle, AlertTriangle
+} from 'lucide-react';
 
 const API_BASE = ((import.meta as any).env?.VITE_API_URL || 'https://ew-exam-portal-backend.onrender.com') + '/api';
 
-
-// Apps that are NOT allowed
 const FORBIDDEN_LABELS: Record<string, string> = {
     chrome: 'Google Chrome',
     msedge: 'Microsoft Edge',
@@ -26,7 +29,7 @@ const FORBIDDEN_LABELS: Record<string, string> = {
     teamviewer_service: 'TeamViewer Service',
 };
 
-type Screen = 'scan' | 'blocked' | 'scan_error' | 'code' | 'details' | 'joining';
+type Screen = 'scan' | 'blocked' | 'scan_error' | 'code' | 'instructions' | 'details' | 'joining';
 
 interface ExamInfo {
     id: string;
@@ -63,7 +66,6 @@ export default function StudentWelcome() {
         return () => { window.removeEventListener('online', up); window.removeEventListener('offline', down); };
     }, []);
 
-    // Auto-scan on launch (Electron only)
     useEffect(() => {
         if (isElectron) { runScan(); }
     }, [isElectron]);
@@ -98,14 +100,13 @@ export default function StudentWelcome() {
         if (isElectron) { (window as any).electronAPI.quitApp(); }
     };
 
-    // Step 1: Validate exam code
     const handleCodeSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         const code = examCode.toUpperCase().trim();
         if (!code) { setError('Please enter an exam code.'); return; }
 
-        setScreen('joining'); // show loading briefly
+        setScreen('joining');
         try {
             const res = await fetch(`${API_BASE}/exams/validate/${code}`);
             const data = await res.json();
@@ -115,14 +116,13 @@ export default function StudentWelcome() {
                 return;
             }
             setExamInfo(data);
-            setScreen('details');
+            setScreen('instructions');
         } catch {
-            setError('Cannot connect to server. Make sure the backend is running.');
+            setError('Cannot connect to server. Make sure you have internet access.');
             setScreen('code');
         }
     };
 
-    // Step 2: Join with student details
     const handleDetailsSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -130,9 +130,8 @@ export default function StudentWelcome() {
             setError('Please fill in all fields.');
             return;
         }
-        // Alphanumeric check for register number
         if (!/^[a-zA-Z0-9]+$/.test(registerNumber.trim())) {
-            setError('Register Number must be alphanumeric (letters and numbers only).');
+            setError('Register Number must be alphanumeric.');
             return;
         }
 
@@ -164,430 +163,272 @@ export default function StudentWelcome() {
             }));
             navigate('/exam');
         } catch {
-            setError('Cannot connect to server. Make sure the backend is running.');
+            setError('Cannot connect to server.');
             setScreen('details');
         }
     };
 
-    // ─── SCANNING SCREEN ──────────────────────────────────────────────────────────
-    if (screen === 'scan') {
-        return (
-            <FullBg>
-                <Card>
-                    <IconBox color="#f59e0b">⏳</IconBox>
-                    <h1 style={s.title}>Scanning System...</h1>
-                    <p style={s.sub}>Checking for unauthorized applications</p>
-                    <div style={{ width: '100%', marginTop: 12 }}>
-                        {Object.entries(FORBIDDEN_LABELS).map(([key, label]) => (
-                            <ChecklistRow key={key} label={label} checking={scanning} blocked={blockedApps.includes(key)} />
-                        ))}
-                    </div>
-                </Card>
-            </FullBg>
-        );
-    }
+    // ─── Render Helpers ───────────────────────────────────────────────
 
-    // ─── BLOCKED SCREEN ───────────────────────────────────────────────────────────
-    if (screen === 'blocked') {
-        return (
-            <FullBg>
-                <Card wide>
-                    <IconBox color="#ef4444">🚫</IconBox>
-                    <h1 style={s.title}>Unauthorized Apps Detected</h1>
-                    <p style={s.sub}>Close these applications before you can continue</p>
-
-                    <div style={{ width: '100%', marginTop: 8 }}>
-                        {Object.entries(FORBIDDEN_LABELS).map(([key, label]) => (
-                            <ChecklistRow key={key} label={label} checking={false} blocked={blockedApps.includes(key)} />
-                        ))}
-                    </div>
-
-                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 13, marginTop: 16, textAlign: 'center' }}>
-                        Close all listed applications, then click Re-scan
-                    </p>
-
-                    <div style={{ display: 'flex', gap: 12, width: '100%', marginTop: 8 }}>
-                        <button onClick={handleQuit} style={s.btnSecondary}>
-                            ✕ Quit
-                        </button>
-                        <button
-                            onClick={runScan}
-                            disabled={scanning}
-                            style={{ ...s.btnPrimary, background: '#f59e0b', flex: 2, opacity: scanning ? 0.6 : 1 }}
-                        >
-                            {scanning ? '⏳ Scanning...' : '🔄 Re-scan'}
-                        </button>
-                    </div>
-                </Card>
-            </FullBg>
-        );
-    }
-
-    // ─── JOINING SCREEN ───────────────────────────────────────────────────────────
-    if (screen === 'joining') {
-        return (
-            <FullBg>
-                <div style={{ textAlign: 'center' }}>
-                    <Spinner large />
-                    <p style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginTop: 20 }}>
-                        {examInfo ? 'Joining Exam...' : 'Verifying Exam Code...'}
-                    </p>
-                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14 }}>Please wait</p>
-                    {isElectron && (
-                        <button onClick={handleQuit} style={{ ...s.btnSecondary, marginTop: 30 }}>
-                            ✕ Cancel & Quit
-                        </button>
-                    )}
-                </div>
-            </FullBg>
-        );
-    }
-
-    // ─── SCAN ERROR SCREEN ────────────────────────────────────────────────────────
-    if (screen === 'scan_error') {
-        return (
-            <FullBg>
-                <Card wide>
-                    <IconBox color="#ef4444">⚠️</IconBox>
-                    <h1 style={s.title}>Security Check Failed</h1>
-                    <p style={s.sub}>{error}</p>
-                    <div style={{ display: 'flex', gap: 12, width: '100%', marginTop: 20 }}>
-                        <button onClick={handleQuit} style={{ ...s.btnSecondary, flex: 1 }}>
-                            ✕ Quit
-                        </button>
-                        <button onClick={runScan} style={{ ...s.btnPrimary, flex: 1 }}>
-                            🔄 Try Again
-                        </button>
-                    </div>
-                </Card>
-            </FullBg>
-        );
-    }
-
-    // ─── STEP 1: EXAM CODE SCREEN ─────────────────────────────────────────────
-    if (screen === 'code') {
-        return (
-            <FullBg>
-                <TopBar isElectron={isElectron} onQuit={handleQuit} />
-                <div style={{ marginTop: 52 }}>
-                    <Card>
-                        <IconBox color="linear-gradient(135deg,#f29d66,#e38450)">📋</IconBox>
-                        <h1 style={s.title}>Enter Exam Code</h1>
-                        <p style={s.sub}>Ask your teacher for the exam code</p>
-
-                        {error && (
-                            <div style={s.errorBox}>
-                                <span>⚠️</span>
-                                <p style={{ margin: 0, color: '#fca5a5', fontSize: 14 }}>{error}</p>
-                            </div>
-                        )}
-
-                        <form onSubmit={handleCodeSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                            <Field label="Exam Code">
-                                <input
-                                    type="text"
-                                    value={examCode}
-                                    onChange={e => setExamCode(e.target.value.toUpperCase())}
-                                    placeholder="e.g. MATH01"
-                                    required
-                                    autoFocus
-                                    style={{ ...s.input, letterSpacing: '0.12em', fontWeight: 700, fontSize: 20, textAlign: 'center' }}
-                                    onFocus={e => (e.target.style.borderColor = '#f29d66')}
-                                    onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.15)')}
-                                />
-                            </Field>
-
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-                                <button type="submit" style={s.btnPrimary}>
-                                    → Verify Code
-                                </button>
-                                {isElectron && (
-                                    <button
-                                        type="button"
-                                        onClick={handleQuit}
-                                        style={{
-                                            ...s.btnSecondary,
-                                            background: 'rgba(239,68,68,0.1)',
-                                            borderColor: 'rgba(239,68,68,0.2)',
-                                            color: '#fca5a5',
-                                            width: '100%',
-                                        }}
-                                    >
-                                        ✕ Quit Application
-                                    </button>
-                                )}
-                            </div>
-                        </form>
-
-                        <div style={{ width: '100%', marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-                            <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>System Status</p>
-                            <StatusRow ok={online} label="Internet Connection" />
-                            {isElectron && (
-                                <div style={{ marginTop: 6 }}>
-                                    <StatusRow ok={blockedApps.length === 0} label="Security Check" />
-                                </div>
-                            )}
-                        </div>
-                    </Card>
-                </div>
-            </FullBg>
-        );
-    }
-
-    // ─── STEP 2: STUDENT DETAILS SCREEN ──────────────────────────────────────
-    return (
-        <FullBg>
-            <TopBar isElectron={isElectron} onQuit={handleQuit} />
-            <div style={{ marginTop: 52 }}>
-                <Card>
-                    {/* Exam info banner */}
-                    {examInfo && (
-                        <div style={{
-                            width: '100%', background: 'rgba(59,130,246,0.15)',
-                            border: '1px solid rgba(59,130,246,0.3)', borderRadius: 12,
-                            padding: '10px 14px', marginBottom: 4,
-                            display: 'flex', alignItems: 'center', gap: 10,
-                        }}>
-                            <span style={{ fontSize: 20 }}>📝</span>
-                            <div>
-                                <p style={{ color: '#93c5fd', fontWeight: 700, fontSize: 14, margin: 0 }}>{examInfo.title}</p>
-                                <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, margin: 0 }}>
-                                    Code: {examInfo.exam_code} · {examInfo.duration_minutes} min
-                                </p>
-                            </div>
-                            <button
-                                onClick={() => { setExamInfo(null); setScreen('code'); setError(''); }}
-                                style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: 18 }}
-                                title="Change exam code"
-                            >✕</button>
-                        </div>
-                    )}
-
-                    <IconBox color="linear-gradient(135deg,#f29d66,#e38450)">👤</IconBox>
-                    <h1 style={s.title}>Your Details</h1>
-                    <p style={s.sub}>Enter your information to start the exam</p>
-
-                    {error && (
-                        <div style={s.errorBox}>
-                            <span>⚠️</span>
-                            <p style={{ margin: 0, color: '#fca5a5', fontSize: 14 }}>{error}</p>
-                        </div>
-                    )}
-
-                    <form onSubmit={handleDetailsSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <Field label="Full Name">
-                            <input
-                                type="text" value={name} onChange={e => setName(e.target.value)}
-                                placeholder="e.g. Yashwanth Kumar" required style={s.input}
-                                onFocus={e => (e.target.style.borderColor = '#f29d66')}
-                                onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.15)')}
-                            />
-                        </Field>
-                        <Field label="Register Number">
-                            <input
-                                type="text" value={registerNumber}
-                                onChange={e => setRegisterNumber(e.target.value.toUpperCase())}
-                                placeholder="e.g. 21CS001" required
-                                style={{ ...s.input, letterSpacing: '0.06em', fontWeight: 600 }}
-                                onFocus={e => (e.target.style.borderColor = '#f29d66')}
-                                onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.15)')}
-                            />
-                        </Field>
-                        <Field label="Department">
-                            <input
-                                type="text" value={department} onChange={e => setDepartment(e.target.value)}
-                                placeholder="e.g. Computer Science" required style={s.input}
-                                onFocus={e => (e.target.style.borderColor = '#f29d66')}
-                                onBlur={e => (e.target.style.borderColor = 'rgba(255,255,255,0.15)')}
-                            />
-                        </Field>
-
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-                            <button type="submit" style={{ ...s.btnPrimary, background: 'linear-gradient(135deg,#f29d66,#e38450)' }}>
-                                🚀 Start Exam
-                            </button>
-                            {isElectron && (
-                                <button
-                                    type="button"
-                                    onClick={handleQuit}
-                                    style={{
-                                        ...s.btnSecondary,
-                                        background: 'rgba(239,68,68,0.1)',
-                                        borderColor: 'rgba(239,68,68,0.2)',
-                                        color: '#fca5a5',
-                                        width: '100%',
-                                    }}
-                                >
-                                    ✕ Quit Application
-                                </button>
-                            )}
-                        </div>
-                    </form>
-                </Card>
-            </div>
-        </FullBg>
-    );
-}
-
-// ─── SUB-COMPONENTS ──────────────────────────────────────────────────────────
-
-function TopBar({ isElectron, onQuit }: { isElectron: boolean; onQuit: () => void }) {
-    return (
-        <div style={s.topBar}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={s.logoBox}>📋</div>
-                <span style={{ color: '#fff', fontWeight: 700, fontSize: 16 }}>Enlight Wisdom</span>
+    const TopBar = () => (
+        <header className="fixed top-0 left-0 right-0 h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between z-50">
+            <div className="flex items-center gap-3">
+                <img src="./app-logo.png" alt="EW SHIKEN Logo" className="h-[44px] w-auto object-contain scale-110 origin-left" />
             </div>
             {isElectron && (
                 <button
-                    onClick={onQuit}
-                    style={{
-                        background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
-                        color: '#fca5a5', padding: '6px 16px', borderRadius: 8, cursor: 'pointer',
-                        fontSize: 13, fontWeight: 600, fontFamily: 'Inter,sans-serif',
-                    }}
-                    title="Quit application"
+                    onClick={handleQuit}
+                    className="flex items-center gap-2 px-4 py-1.5 text-sm font-semibold text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-200"
                 >
-                    ✕ Quit
+                    <LogOut size={16} /> Quit
                 </button>
             )}
-        </div>
+        </header>
     );
-}
 
-function ChecklistRow({ label, checking, blocked }: { label: string; checking: boolean; blocked: boolean }) {
-    const icon = checking ? '⏳' : blocked ? '✗' : '✓';
-    const color = checking ? '#f59e0b' : blocked ? '#ef4444' : '#22c55e';
-    return (
-        <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            background: blocked ? 'rgba(239,68,68,0.1)' : 'rgba(34,197,94,0.06)',
-            border: `1px solid ${blocked ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.15)'}`,
-            borderRadius: 8, padding: '7px 12px', marginBottom: 6,
-        }}>
-            <span style={{ fontSize: 14, color, width: 18, textAlign: 'center' }}>{icon}</span>
-            <span style={{ color: blocked ? '#fca5a5' : 'rgba(255,255,255,0.6)', fontSize: 13, flex: 1 }}>{label}</span>
+    const ChecklistRow = ({ label, checking, blocked }: { label: string; checking: boolean; blocked: boolean }) => (
+        <div className={`flex items-center gap-3 p-3 mb-2 rounded-xl border ${blocked ? 'bg-red-50 border-red-200' : 'bg-slate-50 border-slate-200'}`}>
+            <div className="shrink-0">
+                {checking ? <Loader2 className="animate-spin text-blue-500" size={18} /> : 
+                 blocked ? <XCircle className="text-red-500" size={18} /> : 
+                 <CheckCircle2 className="text-emerald-500" size={18} />}
+            </div>
+            <span className={`flex-1 text-sm ${blocked ? 'text-red-800 font-medium' : 'text-slate-600'}`}>{label}</span>
             {blocked && (
-                <span style={{ color: '#f87171', fontSize: 11, fontWeight: 700, background: 'rgba(239,68,68,0.2)', padding: '2px 8px', borderRadius: 6 }}>
-                    RUNNING
-                </span>
+                <span className="text-[10px] font-bold tracking-wider text-red-600 bg-red-100 px-2 py-0.5 rounded-md uppercase">Running</span>
             )}
         </div>
     );
-}
 
-function FullBg({ children }: { children: React.ReactNode }) {
+    const StatusIndicator = ({ ok, label }: { ok: boolean; label: string }) => (
+        <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${ok ? 'bg-emerald-500' : 'bg-red-500'}`} />
+            <span className="text-xs text-slate-500 font-medium">{label}</span>
+        </div>
+    );
+
+    // ─── SCREENS ──────────────────────────────────────────────────────
+
+    let content = null;
+
+    if (screen === 'scan') {
+        content = (
+            <div className="w-[440px] max-w-full bg-white border border-slate-200 rounded-2xl shadow-sm p-8 flex flex-col">
+                <div className="mx-auto w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mb-6">
+                    <Monitor className="text-blue-600" size={24} />
+                </div>
+                <h1 className="text-2xl font-bold text-slate-900 text-center mb-1">System Check</h1>
+                <p className="text-slate-500 text-sm text-center mb-8">Verifying secure environment...</p>
+                <div className="flex flex-col max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {Object.entries(FORBIDDEN_LABELS).map(([key, label]) => (
+                        <ChecklistRow key={key} label={label} checking={scanning} blocked={blockedApps.includes(key)} />
+                    ))}
+                </div>
+            </div>
+        );
+    } else if (screen === 'blocked') {
+        content = (
+            <div className="w-[440px] max-w-full bg-white border border-red-200 rounded-2xl shadow-sm p-8 flex flex-col">
+                <div className="mx-auto w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mb-6">
+                    <ShieldAlert className="text-red-600" size={24} />
+                </div>
+                <h1 className="text-2xl font-bold text-slate-900 text-center mb-1">Action Required</h1>
+                <p className="text-slate-500 text-sm text-center mb-6">Close the following applications to continue.</p>
+                
+                <div className="flex flex-col max-h-[250px] overflow-y-auto pr-2 custom-scrollbar mb-6">
+                    {Object.entries(FORBIDDEN_LABELS).map(([key, label]) => (
+                        <ChecklistRow key={key} label={label} checking={false} blocked={blockedApps.includes(key)} />
+                    ))}
+                </div>
+                
+                <div className="flex gap-3 mt-auto">
+                    {isElectron && (
+                        <button onClick={handleQuit} className="flex-1 py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-colors">
+                            Quit
+                        </button>
+                    )}
+                    <button onClick={runScan} disabled={scanning} className="flex-[2] py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+                        {scanning ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+                        {scanning ? 'Scanning...' : 'Re-scan System'}
+                    </button>
+                </div>
+            </div>
+        );
+    } else if (screen === 'scan_error') {
+        content = (
+            <div className="w-[440px] max-w-full bg-white border border-red-200 rounded-2xl shadow-sm p-8 text-center">
+                <div className="mx-auto w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mb-6">
+                    <XCircle className="text-red-600" size={24} />
+                </div>
+                <h1 className="text-xl font-bold text-slate-900 mb-2">Security Check Failed</h1>
+                <p className="text-slate-600 text-sm mb-8">{error}</p>
+                <div className="flex gap-3">
+                    {isElectron && (
+                        <button onClick={handleQuit} className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-colors">Quit</button>
+                    )}
+                    <button onClick={runScan} className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm transition-colors">Try Again</button>
+                </div>
+            </div>
+        );
+    } else if (screen === 'joining') {
+        content = (
+            <div className="text-center flex flex-col items-center">
+                <Loader2 className="animate-spin text-blue-600 mb-6" size={48} strokeWidth={2} />
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                    {examInfo ? 'Joining Examination...' : 'Verifying Exam Code...'}
+                </h2>
+                <p className="text-slate-500">Please wait securely.</p>
+                {isElectron && (
+                    <button onClick={handleQuit} className="mt-8 px-6 py-2 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300 font-semibold text-sm transition-colors">
+                        Cancel & Quit
+                    </button>
+                )}
+            </div>
+        );
+    } else if (screen === 'code') {
+        content = (
+            <div className="w-[440px] max-w-full bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
+                <h1 className="text-2xl font-bold text-slate-900 mb-1">Enter Exam Code</h1>
+                <p className="text-slate-500 text-sm mb-8">Provided by your invigilator.</p>
+
+                {error && (
+                    <div className="flex items-center gap-3 bg-red-50 border border-red-200 p-3 rounded-xl mb-6">
+                        <XCircle className="text-red-600 shrink-0" size={18} />
+                        <p className="text-red-800 text-sm font-medium">{error}</p>
+                    </div>
+                )}
+
+                <form onSubmit={handleCodeSubmit} className="flex flex-col gap-6">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Exam Code</label>
+                        <input
+                            type="text"
+                            value={examCode}
+                            onChange={e => setExamCode(e.target.value.toUpperCase())}
+                            placeholder="e.g. MATH01"
+                            required
+                            autoFocus
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 text-lg font-bold text-center uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-300"
+                        />
+                    </div>
+                    
+                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2">
+                        Verify Code <ChevronRight size={18} />
+                    </button>
+                </form>
+
+                <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+                    <StatusIndicator ok={online} label="Network" />
+                    {isElectron && <StatusIndicator ok={blockedApps.length === 0} label="Security" />}
+                </div>
+            </div>
+        );
+    } else if (screen === 'instructions') {
+        content = (
+            <div className="w-[440px] max-w-full bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
+                {examInfo && (
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 flex items-start gap-4">
+                        <div className="bg-blue-100 text-blue-600 p-2 rounded-lg mt-0.5"><FileText size={20} /></div>
+                        <div className="flex-1">
+                            <h3 className="font-bold text-blue-900">{examInfo.title}</h3>
+                            <p className="text-blue-700/70 text-sm mt-0.5">Code: {examInfo.exam_code} · {examInfo.duration_minutes} min</p>
+                        </div>
+                    </div>
+                )}
+                <h1 className="text-2xl font-bold text-slate-900 mb-4">Exam Instructions</h1>
+                
+                <ul className="text-slate-600 text-sm space-y-4 mb-8">
+                    <li className="flex gap-3 items-start"><CheckCircle2 className="text-emerald-500 shrink-0 mt-0.5" size={16} /> <span>Total duration is <strong>{examInfo?.duration_minutes} minutes</strong>. The timer will start once you join.</span></li>
+                    <li className="flex gap-3 items-start"><ShieldAlert className="text-red-500 shrink-0 mt-0.5" size={16} /> <span>Do not switch tabs, open other applications, or attempt to use external monitors.</span></li>
+                    <li className="flex gap-3 items-start"><Monitor className="text-red-500 shrink-0 mt-0.5" size={16} /> <span>Your screen, keyboard, and mouse activity are being strictly monitored.</span></li>
+                    <li className="flex gap-3 items-start"><AlertTriangle className="text-amber-500 shrink-0 mt-0.5" size={16} /> <span>Any violation will be logged and may result in immediate termination of the exam.</span></li>
+                </ul>
+
+                <button onClick={() => setScreen('details')} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2">
+                    Continue <ChevronRight size={18} />
+                </button>
+                <button onClick={() => { setExamInfo(null); setScreen('code'); }} className="w-full mt-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-3 rounded-xl transition-colors text-sm">
+                    Back to Code
+                </button>
+            </div>
+        );
+    } else if (screen === 'details') {
+        content = (
+            <div className="w-[440px] max-w-full bg-white border border-slate-200 rounded-2xl shadow-sm p-8">
+                {examInfo && (
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-8 flex items-start gap-4">
+                        <div className="bg-blue-100 text-blue-600 p-2 rounded-lg mt-0.5"><FileText size={20} /></div>
+                        <div className="flex-1">
+                            <h3 className="font-bold text-blue-900">{examInfo.title}</h3>
+                            <p className="text-blue-700/70 text-sm mt-0.5">Code: {examInfo.exam_code} · {examInfo.duration_minutes} min</p>
+                        </div>
+                        <button onClick={() => { setExamInfo(null); setScreen('code'); setError(''); }} className="text-blue-400 hover:text-blue-700 p-1">
+                            <XCircle size={18} />
+                        </button>
+                    </div>
+                )}
+
+                <h1 className="text-2xl font-bold text-slate-900 mb-1">Student Details</h1>
+                <p className="text-slate-500 text-sm mb-6">Confirm your identity before starting.</p>
+
+                {error && (
+                    <div className="flex items-center gap-3 bg-red-50 border border-red-200 p-3 rounded-xl mb-6">
+                        <XCircle className="text-red-600 shrink-0" size={18} />
+                        <p className="text-red-800 text-sm font-medium">{error}</p>
+                    </div>
+                )}
+
+                <form onSubmit={handleDetailsSubmit} className="flex flex-col gap-5">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Full Name</label>
+                        <div className="relative">
+                            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <input
+                                type="text" value={name} onChange={e => setName(e.target.value)}
+                                placeholder="Your Name" required
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-4 py-3 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-400 font-medium"
+                            />
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Register Number</label>
+                        <div className="relative">
+                            <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <input
+                                type="text" value={registerNumber} onChange={e => setRegisterNumber(e.target.value.toUpperCase())}
+                                placeholder="e.g. 21CS001" required
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-4 py-3 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-400 font-bold tracking-wide"
+                            />
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Department</label>
+                        <div className="relative">
+                            <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <input
+                                type="text" value={department} onChange={e => setDepartment(e.target.value)}
+                                placeholder="e.g. Computer Science" required
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-11 pr-4 py-3 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all placeholder:text-slate-400 font-medium"
+                            />
+                        </div>
+                    </div>
+                    
+                    <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 mt-2">
+                        Start Examination <ChevronRight size={18} />
+                    </button>
+                </form>
+            </div>
+        );
+    }
+
     return (
-        <div style={{
-            width: '100vw', height: '100vh',
-            background: 'linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'Inter,sans-serif', overflowY: 'auto', userSelect: 'none',
-        }}>
-            {children}
+        <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col selection:bg-blue-200">
+            <TopBar />
+            <main className="flex-1 flex flex-col items-center justify-center p-6 pt-20 w-full">
+                {content}
+            </main>
         </div>
     );
 }
-
-function Card({ children, wide }: { children: React.ReactNode; wide?: boolean }) {
-    return (
-        <div style={{
-            width: wide ? 520 : 460, maxWidth: 'calc(100vw - 40px)',
-            background: 'rgba(255,255,255,0.07)', backdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255,255,255,0.12)', borderRadius: 24, padding: 36,
-            boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
-        }}>
-            {children}
-        </div>
-    );
-}
-
-function IconBox({ children, color }: { children: React.ReactNode; color: string }) {
-    return (
-        <div style={{
-            width: 60, height: 60, background: color, borderRadius: 16,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 26, marginBottom: 6,
-            boxShadow: '0 8px 25px rgba(59,130,246,0.3)',
-        }}>
-            {children}
-        </div>
-    );
-}
-
-function Spinner({ large }: { large?: boolean }) {
-    const size = large ? 48 : 36;
-    return (
-        <>
-            <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-            <div style={{
-                width: size, height: size,
-                border: `${large ? 4 : 3}px solid rgba(255,255,255,0.15)`,
-                borderTop: `${large ? 4 : 3}px solid #60a5fa`,
-                borderRadius: '50%', animation: 'spin 1s linear infinite',
-                margin: '16px auto 0',
-            }} />
-        </>
-    );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-    return (
-        <div style={{ width: '100%' }}>
-            <label style={{ display: 'block', color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: 600, marginBottom: 6, letterSpacing: '0.04em' }}>
-                {label.toUpperCase()}
-            </label>
-            {children}
-        </div>
-    );
-}
-
-function StatusRow({ ok, label }: { ok: boolean; label: string }) {
-    return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '7px 12px' }}>
-            <div style={{ width: 7, height: 7, borderRadius: '50%', background: ok ? '#22c55e' : '#ef4444', boxShadow: ok ? '0 0 6px #22c55e' : '0 0 6px #ef4444' }} />
-            <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, flex: 1 }}>{label}</span>
-            <span style={{ color: ok ? '#4ade80' : '#f87171', fontSize: 12, fontWeight: 700 }}>{ok ? 'OK' : 'Error'}</span>
-        </div>
-    );
-}
-
-// ─── SHARED STYLES ────────────────────────────────────────────────────────────
-const s = {
-    title: { color: '#fff', fontSize: 22, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', textAlign: 'center' as const },
-    sub: { color: 'rgba(255,255,255,0.45)', fontSize: 14, margin: '2px 0 10px', textAlign: 'center' as const },
-    topBar: {
-        position: 'fixed' as const, top: 0, left: 0, right: 0, height: 52,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 20px',
-        background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)',
-        borderBottom: '1px solid rgba(255,255,255,0.08)', zIndex: 50,
-    },
-    logoBox: { width: 28, height: 28, background: '#f29d66', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 },
-    input: {
-        width: '100%', boxSizing: 'border-box' as const,
-        background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)',
-        borderRadius: 12, padding: '12px 14px', color: '#fff', fontSize: 15,
-        outline: 'none', fontFamily: 'Inter,sans-serif', transition: 'border-color 0.2s',
-    },
-    btnPrimary: {
-        width: '100%', padding: '13px', marginTop: 4,
-        background: 'linear-gradient(135deg,#f29d66,#e38450)',
-        color: '#fff', border: 'none', borderRadius: 12,
-        fontSize: 15, fontWeight: 700, cursor: 'pointer',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-        boxShadow: '0 4px 20px rgba(59,130,246,0.35)', fontFamily: 'Inter,sans-serif',
-        flex: 1,
-    },
-    btnSecondary: {
-        padding: '13px 20px', background: 'rgba(255,255,255,0.08)',
-        color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.15)',
-        borderRadius: 12, cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: 'Inter,sans-serif',
-    },
-    errorBox: {
-        display: 'flex', alignItems: 'flex-start', gap: 10,
-        background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
-        borderRadius: 12, padding: '12px 14px', width: '100%',
-    },
-};

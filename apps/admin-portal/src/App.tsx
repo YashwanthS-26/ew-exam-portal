@@ -6,9 +6,11 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import ExamManagement from './pages/ExamManagement';
 import CreateExam from './pages/CreateExam';
+import EditExam from './pages/EditExam';
 import QuestionBuilder from './pages/QuestionBuilder';
 import LiveMonitoring from './pages/LiveMonitoring';
 import Results from './pages/Results';
+import QuestionBank from './pages/QuestionBank';
 
 import AdminLayout from './components/layout/AdminLayout';
 
@@ -38,7 +40,10 @@ function App() {
           <Route path="/exams" element={<ExamManagement />} />
           <Route path="/results" element={<Results />} />
           <Route path="/exams/create" element={<CreateExam />} />
+          <Route path="/exams/:id/edit" element={<EditExam />} />
           <Route path="/exams/:id/questions" element={<QuestionBuilder />} />
+          <Route path="/question-bank" element={<QuestionBank />} />
+          <Route path="/question-bank/category/:categoryId" element={<QuestionBank />} />
           <Route path="/exams/:id/live" element={<LiveMonitoring />} />
           <Route path="/exams/:id/results" element={<ExamResults />} />
         </Route>

@@ -24,7 +24,13 @@ export const createExam = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'Missing required fields: title, exam_code, duration_minutes' });
         }
 
-        if (!(await isExamCodeUnique(exam_code))) {
+        // Normalize and validate code
+        const normalizedCode = String(exam_code || '').replace(/\s+/g, '').trim();
+        if (!/^\d{4}$/.test(normalizedCode)) {
+            return res.status(400).json({ error: 'Exam code must be exactly 4 digits' });
+        }
+
+        if (!(await isExamCodeUnique(normalizedCode))) {
             return res.status(400).json({ error: 'Exam code must be unique' });
         }
 
@@ -34,7 +40,7 @@ export const createExam = async (req: Request, res: Response) => {
         const insertPayload: Record<string, any> = {
             title,
             description: description || null,
-            exam_code,
+            exam_code: normalizedCode,
             duration_minutes: Number(duration_minutes),
             cooldown_minutes: Number(cooldown_minutes) || 0,
             total_questions_pool: pool,
@@ -374,11 +380,11 @@ export const deleteSingleQuestion = async (req: Request, res: Response) => {
 // ─── PUBLIC: Validate exam code (Step 1 of student login) ────────────────────
 export const validateExam = async (req: Request, res: Response) => {
     try {
-        const examCode = String(req.params.examCode);
+        const examCode = String(req.params.examCode).replace(/\s+/g, '').trim();
         const { data: exam, error } = await supabase
             .from('exams')
             .select('id, title, exam_code, duration_minutes, status')
-            .eq('exam_code', examCode.toUpperCase().trim())
+            .eq('exam_code', examCode)
             .single();
 
         if (error || !exam) {
@@ -435,13 +441,43 @@ export const grantReattempt = async (req: Request, res: Response) => {
     }
 };
 
+// ─── ADMIN: Resume exam for a student ────────────────────────────────────────
+export const resumeExam = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params; // exam id
+        const { rollNumber } = req.body;
+
+        if (!rollNumber) {
+            return res.status(400).json({ error: 'rollNumber is required' });
+        }
+
+        // Just update the status back to WAITING so they can log in and resume
+        const { error } = await supabase
+            .from('student_attempts')
+            .update({ status: 'WAITING' })
+            .eq('exam_id', id)
+            .eq('roll_number', rollNumber.trim());
+
+        if (error) {
+            console.error('Resume exam error:', error);
+            return res.status(400).json({ error: error.message });
+        }
+
+        res.status(200).json({ message: 'Exam resumed. Student can now rejoin and continue.' });
+    } catch (err) {
+        console.error('Resume exam error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
 // ─── PUBLIC: Student joins an exam ───────────────────────────────────────────
 export const joinExam = async (req: Request, res: Response) => {
     require('fs').writeFileSync('c:\\Business\\exam\\ew-exam-portal\\apps\\backend\\joinExam_executed.txt', 'EXECUTED ' + Date.now());
     try {
         const { exam_code, student_name, roll_number, department } = req.body;
+        const normalizedCode = String(exam_code || '').replace(/\s+/g, '').trim();
 
-        if (!exam_code || !student_name || !roll_number) {
+        if (!normalizedCode || !student_name || !roll_number) {
             return res.status(400).json({ error: 'exam_code, student_name and roll_number are required' });
         }
 
@@ -449,7 +485,7 @@ export const joinExam = async (req: Request, res: Response) => {
         const { data: exam, error: examErr } = await supabase
             .from('exams')
             .select('*')
-            .eq('exam_code', exam_code.toUpperCase().trim())
+            .eq('exam_code', normalizedCode)
             .single();
 
         if (examErr || !exam) {
@@ -573,6 +609,7 @@ export const joinExam = async (req: Request, res: Response) => {
                 exam_code: exam.exam_code,
                 duration_minutes: exam.duration_minutes,
                 show_results_to_students: exam.show_results_to_students,
+                start_time: exam.start_time,
             },
             questions: questions.map((q: any) => ({
                 id: q.id,

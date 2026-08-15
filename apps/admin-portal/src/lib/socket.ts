@@ -4,7 +4,7 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'https://ew-exam-portal-ba
 
 class SocketService {
   private socket: Socket | null = null;
-  private monitorExamCode: string | null = null;
+  private monitorExamId: string | null = null;
 
   connect() {
     if (!this.socket) {
@@ -21,8 +21,8 @@ class SocketService {
         console.log('Connected to real-time server:', this.socket?.id);
         // Re-join admin room on every reconnect (covers server restarts)
         this.socket?.emit('admin_join');
-        if (this.monitorExamCode) {
-          this.socket?.emit('admin_monitor_exam', { examCode: this.monitorExamCode });
+        if (this.monitorExamId) {
+          this.socket?.emit('admin_monitor_exam', { examId: this.monitorExamId });
         }
       });
 
@@ -33,8 +33,8 @@ class SocketService {
     return this.socket;
   }
 
-  setMonitorExamCode(examCode: string | null) {
-    this.monitorExamCode = examCode;
+  setMonitorExamId(examId: string | null) {
+    this.monitorExamId = examId;
   }
 
   disconnect() {
@@ -42,7 +42,7 @@ class SocketService {
       this.socket.disconnect();
       this.socket = null;
     }
-    this.monitorExamCode = null;
+    this.monitorExamId = null;
   }
 
   getSocket(): Socket | null {
