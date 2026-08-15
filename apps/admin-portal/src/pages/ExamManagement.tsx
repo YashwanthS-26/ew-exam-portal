@@ -38,6 +38,8 @@ export default function ExamManagement() {
     const [filter, setFilter] = useState('ALL');
     const [search, setSearch] = useState('');
     const [deleteConfirm, setDeleteConfirm] = useState<Exam | null>(null);
+    const [publishConfirm, setPublishConfirm] = useState<Exam | null>(null);
+    const [publishText, setPublishText] = useState('');
 
     const { data: exams, isLoading } = useQuery({
         queryKey: ['exams'],
@@ -70,6 +72,8 @@ export default function ExamManagement() {
             await api.post(`/exams/${exam.id}/publish`);
             queryClient.invalidateQueries({ queryKey: ['exams'] });
             toast.success('Exam published!');
+            setPublishConfirm(null);
+            setPublishText('');
         } catch (e: any) {
             toast.error(e.response?.data?.error || 'Failed to publish');
         }
@@ -185,12 +189,17 @@ export default function ExamManagement() {
                                                     {exam.status === 'DRAFT' && (
                                                         <>
                                                             <button onClick={() => navigate(`/exams/${exam.id}/questions`)} title="Edit Questions" className="p-2 rounded-md text-slate-400 hover:text-primary hover:bg-slate-100 transition-colors">
-                                                                <Edit size={16} />
+                                                                <List size={16} />
                                                             </button>
-                                                            <button onClick={() => handlePublish(exam)} title="Publish" className="p-2 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                                                            <button onClick={() => setPublishConfirm(exam)} title="Publish Exam" className="p-2 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors">
                                                                 <UploadCloud size={16} />
                                                             </button>
                                                         </>
+                                                    )}
+                                                    {exam.status !== 'DRAFT' && (
+                                                        <button onClick={() => navigate(`/exams/${exam.id}/questions`)} title="Preview Questions" className="p-2 rounded-md text-slate-400 hover:text-primary hover:bg-slate-100 transition-colors">
+                                                            <Eye size={16} />
+                                                        </button>
                                                     )}
                                                     {exam.status === 'PUBLISHED' && (
                                                         <button onClick={() => handleStartExam(exam)} title="Start Exam" className="px-3 py-1.5 rounded-md bg-emerald-600 text-white text-xs font-semibold flex items-center gap-1.5 hover:bg-emerald-700 transition-colors shadow-sm">
@@ -210,8 +219,8 @@ export default function ExamManagement() {
                                                         </button>
                                                     )}
                                                     <div className="w-px h-5 bg-slate-200 mx-1 hidden sm:block"></div>
-                                                    <button onClick={() => navigate(`/exams/${exam.id}/edit`)} title="Settings" className="p-2 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
-                                                        <Settings size={16} />
+                                                    <button onClick={() => navigate(`/exams/${exam.id}/edit`)} title={exam.status === 'DRAFT' ? "Settings" : "Preview Settings"} className="p-2 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+                                                        {exam.status === 'DRAFT' ? <Settings size={16} /> : <Eye size={16} />}
                                                     </button>
                                                     <button onClick={() => setDeleteConfirm(exam)} title="Delete" className="p-2 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
                                                         <Trash2 size={16} />
@@ -246,6 +255,50 @@ export default function ExamManagement() {
                         <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-xl">
                             <button onClick={() => setDeleteConfirm(null)} className="text-sm font-medium text-slate-600 px-4 py-2 rounded-md hover:bg-slate-200 transition-colors">Cancel</button>
                             <button onClick={() => handleDelete(deleteConfirm)} className="bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-red-700 transition-colors shadow-sm">Delete Exam</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Publish Confirm Modal */}
+            {publishConfirm && createPortal(
+                <div className="fixed inset-0 bg-slate-900/40 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-white rounded-xl shadow-xl border border-slate-200 flex flex-col w-[90vw] max-w-sm" style={{ minWidth: '300px' }}>
+                        <div className="p-6">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+                                    <UploadCloud className="text-blue-600" size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-semibold text-slate-900">Publish Exam?</h3>
+                                </div>
+                            </div>
+                            <p className="text-sm text-slate-600 mb-3">You are about to publish <strong>{publishConfirm.title}</strong>.</p>
+                            <div className="bg-orange-50 border border-orange-200 text-orange-800 text-xs p-3 rounded-md mb-4 flex gap-2">
+                                <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                                <p>Once published, the exam is locked. You will <strong>not</strong> be able to change settings, add questions, or modify content. Everything will be frozen.</p>
+                            </div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                Type <strong>publish</strong> to confirm
+                            </label>
+                            <input
+                                type="text"
+                                value={publishText}
+                                onChange={(e) => setPublishText(e.target.value)}
+                                className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                placeholder="publish"
+                            />
+                        </div>
+                        <div className="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-xl">
+                            <button onClick={() => { setPublishConfirm(null); setPublishText(''); }} className="text-sm font-medium text-slate-600 px-4 py-2 rounded-md hover:bg-slate-200 transition-colors">Cancel</button>
+                            <button 
+                                onClick={() => handlePublish(publishConfirm)} 
+                                disabled={publishText.toLowerCase() !== 'publish'}
+                                className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Publish Exam
+                            </button>
                         </div>
                     </div>
                 </div>,

@@ -30,8 +30,11 @@ export default function EditExam() {
         total_questions_pool: 0,
         randomization_enabled: true,
         show_results_to_students: false,
+        status: 'DRAFT'
     });
     
+    const isReadonly = examData.status !== 'DRAFT';
+
     useEffect(() => {
         const fetchExam = async () => {
             try {
@@ -45,6 +48,7 @@ export default function EditExam() {
                     total_questions_pool: res.data.total_questions_pool || 0,
                     randomization_enabled: res.data.randomization_enabled ?? true,
                     show_results_to_students: res.data.show_results_to_students ?? false,
+                    status: res.data.status || 'DRAFT'
                 });
                 setLoading(false);
             } catch (err: any) {
@@ -81,19 +85,21 @@ export default function EditExam() {
                         <ArrowLeft size={20} />
                     </button>
                     <div>
-                        <h1 className="text-xl font-bold text-slate-900 leading-tight">Edit Exam</h1>
-                        <p className="text-xs font-medium text-slate-500 mt-0.5">Settings</p>
+                        <h1 className="text-xl font-bold text-slate-900 leading-tight">{isReadonly ? 'Preview Exam Summary' : 'Edit Exam'}</h1>
+                        <p className="text-xs font-medium text-slate-500 mt-0.5">{isReadonly ? 'Read-only view' : 'Settings'}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <button 
-                        onClick={handleSave} 
-                        className="text-sm font-medium text-white bg-primary hover:bg-black px-4 py-2 rounded-md transition-colors shadow-sm flex items-center gap-2"
-                    >
-                        <span>Save Changes</span>
-                        <Save size={16} />
-                    </button>
-                </div>
+                {!isReadonly && (
+                    <div className="flex items-center gap-3">
+                        <button 
+                            onClick={handleSave} 
+                            className="text-sm font-medium text-white bg-primary hover:bg-black px-4 py-2 rounded-md transition-colors shadow-sm flex items-center gap-2"
+                        >
+                            <span>Save Changes</span>
+                            <Save size={16} />
+                        </button>
+                    </div>
+                )}
             </header>
 
             <div className="flex-1 overflow-y-auto p-6 md:p-8">
@@ -111,6 +117,7 @@ export default function EditExam() {
                                         className="w-full text-3xl font-bold text-slate-900 placeholder:text-slate-300 border-none focus:ring-0 p-0 focus:outline-none" 
                                         placeholder="Exam Title" 
                                         type="text" 
+                                        disabled={isReadonly}
                                     />
                                 </div>
                                 <div>
@@ -120,6 +127,7 @@ export default function EditExam() {
                                         className="w-full text-base text-slate-600 placeholder:text-slate-400 border-none focus:ring-0 p-0 focus:outline-none resize-none" 
                                         placeholder="Exam Description (Optional)" 
                                         rows={2}
+                                        disabled={isReadonly}
                                     ></textarea>
                                 </div>
                                 <div className="mt-2 pt-4 border-t border-slate-100">
@@ -131,18 +139,21 @@ export default function EditExam() {
                                                 const val = e.target.value.replace(/\D/g, '').slice(0, 4);
                                                 setExamData({...examData, exam_code: val});
                                             }} 
-                                            className="w-full rounded-md border border-slate-200 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary px-3 py-2 outline-none transition-all font-mono tracking-widest text-lg" 
+                                            className="w-full rounded-md border border-slate-200 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary px-3 py-2 outline-none transition-all font-mono tracking-widest text-lg disabled:bg-slate-50 disabled:text-slate-500" 
                                             placeholder="e.g. 1234" 
                                             type="text" 
                                             maxLength={4}
+                                            disabled={isReadonly}
                                         />
-                                        <button 
-                                            onClick={generateCode}
-                                            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md border border-slate-200 transition-colors flex items-center gap-2 shrink-0"
-                                            title="Generate Random Code"
-                                        >
-                                            <RefreshCw size={16} />
-                                        </button>
+                                        {!isReadonly && (
+                                            <button 
+                                                onClick={generateCode}
+                                                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-md border border-slate-200 transition-colors flex items-center gap-2 shrink-0"
+                                                title="Generate Random Code"
+                                            >
+                                                <RefreshCw size={16} />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -160,10 +171,11 @@ export default function EditExam() {
                                     <input 
                                         value={examData.duration_minutes} 
                                         onChange={e => setExamData({...examData, duration_minutes: parseInt(e.target.value) || 0})} 
-                                        className="w-full rounded-md border border-slate-200 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary px-3 py-2 outline-none transition-all bg-slate-50" 
+                                        className="w-full rounded-md border border-slate-200 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary px-3 py-2 outline-none transition-all bg-slate-50 disabled:text-slate-500" 
                                         min="1" 
                                         placeholder="60" 
                                         type="number" 
+                                        disabled={isReadonly}
                                     />
                                 </div>
                             </div>
@@ -184,10 +196,11 @@ export default function EditExam() {
                                     <input 
                                         value={examData.total_questions_pool} 
                                         onChange={e => setExamData({...examData, total_questions_pool: parseInt(e.target.value) || 0})} 
-                                        className="w-20 rounded-md border border-slate-200 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary px-2 py-1.5 outline-none transition-all text-center bg-white" 
+                                        className="w-20 rounded-md border border-slate-200 text-sm text-slate-900 focus:border-primary focus:ring-1 focus:ring-primary px-2 py-1.5 outline-none transition-all text-center bg-white disabled:bg-slate-50 disabled:text-slate-500" 
                                         min="0" 
                                         placeholder="All" 
                                         type="number" 
+                                        disabled={isReadonly}
                                     />
                                 </div>
                                 <div className="flex items-center justify-between p-4 rounded-lg border border-slate-200 bg-slate-50">
@@ -201,6 +214,7 @@ export default function EditExam() {
                                             onChange={e => setExamData({...examData, randomization_enabled: e.target.checked})} 
                                             className="sr-only peer" 
                                             type="checkbox" 
+                                            disabled={isReadonly}
                                         />
                                         <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                     </label>
@@ -225,6 +239,7 @@ export default function EditExam() {
                                         onChange={e => setExamData({...examData, show_results_to_students: e.target.checked})} 
                                         className="sr-only peer" 
                                         type="checkbox" 
+                                        disabled={isReadonly}
                                     />
                                     <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                 </label>

@@ -73,9 +73,9 @@ export default function AdminLayout() {
     );
 
     return (
-        <div className="bg-slate-50 text-slate-900 font-sans h-screen overflow-hidden flex relative">
+        <div className="bg-slate-50 text-slate-900 font-sans h-screen overflow-hidden flex relative print:h-auto print:overflow-visible">
             {/* Desktop Sidebar */}
-            <aside className="hidden md:flex flex-col h-full border-r border-slate-200 bg-white left-0 w-64 flex-shrink-0 z-40 transition-all duration-200 ease-in-out">
+            <aside className="hidden md:flex flex-col h-full border-r border-slate-200 bg-white left-0 w-64 flex-shrink-0 z-40 transition-all duration-200 ease-in-out print:hidden">
                 <SidebarContent />
             </aside>
 
@@ -93,9 +93,9 @@ export default function AdminLayout() {
             </aside>
 
             {/* Main Content Wrapper */}
-            <div className="flex-1 flex flex-col h-screen overflow-hidden w-full">
+            <div className="flex-1 flex flex-col h-screen overflow-hidden w-full print:h-auto print:overflow-visible">
                 {/* TopNavBar */}
-                <header className="flex justify-between items-center w-full px-4 md:px-6 h-16 bg-white border-b border-slate-200 shrink-0 z-30">
+                <header className="flex justify-between items-center w-full px-4 md:px-6 h-16 bg-white border-b border-slate-200 shrink-0 z-30 print:hidden">
                     <div className="flex items-center gap-4">
                         <button 
                             className="md:hidden text-slate-500 hover:bg-slate-100 p-2 rounded-md transition-colors"
@@ -138,7 +138,7 @@ export default function AdminLayout() {
                 </header>
 
                 {/* Main Scrollable Canvas */}
-                <main className="flex-1 overflow-y-auto bg-slate-50 relative">
+                <main className="flex-1 overflow-y-auto bg-slate-50 relative print:overflow-visible">
                     <Outlet />
                 </main>
             </div>

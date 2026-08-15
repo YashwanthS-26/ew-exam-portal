@@ -75,23 +75,33 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
                         <h2 className="text-2xl font-bold text-slate-900">Exam Results</h2>
                         <p className="text-sm text-slate-500 mt-1">Live results — updates automatically when students submit.</p>
                     </div>
-                    {/* Exam Filter */}
-                    <div className="relative min-w-[240px]">
-                        <select
-                            value={selectedExamId || ''}
-                            onChange={e => setSelectedExamId(e.target.value || null)}
-                            className="w-full appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-medium py-2.5 pl-4 pr-10 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-sm cursor-pointer"
-                        >
-                            <option value="">All Exams</option>
-                            {completedExams.map((e: any) => (
-                                <option key={e.id} value={e.id}>{e.title} ({e.exam_code})</option>
-                            ))}
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
-                            </svg>
+                    <div className="flex items-center gap-3 print:hidden">
+                        {/* Exam Filter */}
+                        <div className="relative min-w-[240px]">
+                            <select
+                                value={selectedExamId || ''}
+                                onChange={e => setSelectedExamId(e.target.value || null)}
+                                className="w-full appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-medium py-2.5 pl-4 pr-10 rounded-md focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary shadow-sm cursor-pointer"
+                            >
+                                <option value="">All Exams</option>
+                                {completedExams.map((e: any) => (
+                                    <option key={e.id} value={e.id}>{e.title} ({e.exam_code})</option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+                                </svg>
+                            </div>
                         </div>
+                        <button 
+                            onClick={() => window.print()} 
+                            className="bg-primary text-white text-sm font-medium py-2.5 px-4 rounded-md hover:bg-black transition-colors shadow-sm flex items-center gap-2 shrink-0"
+                            title="Export Results as PDF"
+                        >
+                            <FileText size={16} />
+                            <span className="hidden sm:inline">Export PDF</span>
+                        </button>
                     </div>
                 </div>
 

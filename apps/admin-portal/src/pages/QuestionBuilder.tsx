@@ -55,6 +55,7 @@ export default function QuestionBuilder() {
     const [loading, setLoading] = useState(true);
     const [savingAll, setSavingAll] = useState(false);
     const [showBankImporter, setShowBankImporter] = useState(false);
+    const [isReadonly, setIsReadonly] = useState(false);
 
     // Load exam and existing questions
     useEffect(() => {
@@ -66,6 +67,7 @@ export default function QuestionBuilder() {
                     api.get(`/exams/${examId}/questions`),
                 ]);
                 setExamTitle(examRes.data?.title || 'Exam');
+                setIsReadonly(examRes.data?.status !== 'DRAFT');
                 const dbQuestions: any[] = qRes.data || [];
                 // Map DB questions to our local format
                 if (dbQuestions.length > 0) {
@@ -273,9 +275,15 @@ export default function QuestionBuilder() {
                         <HelpCircle size={14} />
                         MCQ Only
                     </span>
+                    {isReadonly && (
+                        <span className="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-md border border-slate-200 ml-2">
+                            <BookOpen size={14} />
+                            Read-only (Published)
+                        </span>
+                    )}
                 </div>
                 <div className="flex items-center gap-4">
-                    {unsavedCount > 0 && (
+                    {unsavedCount > 0 && !isReadonly && (
                         <span className="text-sm font-semibold text-orange-600 hidden md:block flex items-center gap-1.5">
                             <AlertCircle size={16} />
                             {unsavedCount} unsaved
@@ -284,18 +292,20 @@ export default function QuestionBuilder() {
                     <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1.5 rounded-md border border-slate-200">
                         {questions.length} question{questions.length !== 1 ? 's' : ''}
                     </span>
-                    <button
-                        onClick={saveAllQuestions}
-                        disabled={savingAll}
-                        className="text-sm font-semibold bg-primary text-white hover:bg-black px-4 py-2 rounded-md transition-colors shadow-sm flex items-center gap-2 disabled:opacity-60"
-                    >
-                        {savingAll ? (
-                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                            <Save size={16} />
-                        )}
-                        Save All
-                    </button>
+                    {!isReadonly && (
+                        <button
+                            onClick={saveAllQuestions}
+                            disabled={savingAll}
+                            className="text-sm font-semibold bg-primary text-white hover:bg-black px-4 py-2 rounded-md transition-colors shadow-sm flex items-center gap-2 disabled:opacity-60"
+                        >
+                            {savingAll ? (
+                                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                                <Save size={16} />
+                            )}
+                            Save All
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -324,6 +334,7 @@ export default function QuestionBuilder() {
                                 key={q.localId}
                                 index={index}
                                 question={q}
+                                isReadonly={isReadonly}
                                 onUpdateText={text => updateQ(q.localId, { text })}
                                 onUpdateOption={(optId, text) => updateOption(q.localId, optId, text)}
                                 onSetCorrect={optId => setCorrectOption(q.localId, optId)}
@@ -338,22 +349,24 @@ export default function QuestionBuilder() {
             </div>
 
             {/* FAB - Add Question */}
-            <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 z-50 flex flex-col items-end gap-3">
-                <button
-                    onClick={() => setShowBankImporter(true)}
-                    className="w-12 h-12 bg-white text-indigo-600 rounded-full shadow-lg hover:bg-indigo-50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center border border-indigo-100"
-                    title="Import from Question Bank"
-                >
-                    <BookOpen size={22} />
-                </button>
-                <button
-                    onClick={addQuestion}
-                    className="w-14 h-14 bg-primary text-white rounded-full shadow-lg hover:bg-black hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
-                    title="Add Question Manually"
-                >
-                    <Plus size={28} />
-                </button>
-            </div>
+            {!isReadonly && (
+                <div className="absolute bottom-6 right-6 md:bottom-8 md:right-8 z-50 flex flex-col items-end gap-3">
+                    <button
+                        onClick={() => setShowBankImporter(true)}
+                        className="w-12 h-12 bg-white text-indigo-600 rounded-full shadow-lg hover:bg-indigo-50 hover:scale-105 active:scale-95 transition-all flex items-center justify-center border border-indigo-100"
+                        title="Import from Question Bank"
+                    >
+                        <BookOpen size={22} />
+                    </button>
+                    <button
+                        onClick={addQuestion}
+                        className="w-14 h-14 bg-primary text-white rounded-full shadow-lg hover:bg-black hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
+                        title="Add Question Manually"
+                    >
+                        <Plus size={28} />
+                    </button>
+                </div>
+            )}
 
             {showBankImporter && (
                 <ExamQuestionImporter 
@@ -366,10 +379,10 @@ export default function QuestionBuilder() {
     );
 }
 
-// ─── MCQ Card Component ───────────────────────────────────────────────────────
 interface MCQCardProps {
     index: number;
     question: Question;
+    isReadonly: boolean;
     onUpdateText: (text: string) => void;
     onUpdateOption: (optId: string, text: string) => void;
     onSetCorrect: (optId: string) => void;
@@ -379,7 +392,7 @@ interface MCQCardProps {
     onDelete: () => void;
 }
 
-function MCQCard({ index, question: q, onUpdateText, onUpdateOption, onSetCorrect, onUpdateMarks, onUpdateNegMarks, onSave, onDelete }: MCQCardProps) {
+function MCQCard({ index, question: q, isReadonly, onUpdateText, onUpdateOption, onSetCorrect, onUpdateMarks, onUpdateNegMarks, onSave, onDelete }: MCQCardProps) {
     return (
         <div className={`bg-white rounded-xl shadow-sm overflow-hidden transition-all border ${q.saved ? 'border-slate-200' : 'border-orange-200'}`}>
             {/* Card Header */}
@@ -401,23 +414,25 @@ function MCQCard({ index, question: q, onUpdateText, onUpdateOption, onSetCorrec
                         </span>
                     )}
                 </div>
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={onSave}
-                        disabled={q.saving}
-                        className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm ${q.saved ? 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50' : 'bg-primary text-white border border-transparent hover:bg-black'}`}
-                    >
-                        {q.saving ? (
-                            <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                            <Save size={14} />
-                        )}
-                        {q.saving ? 'Saving...' : q.saved ? 'Update' : 'Save'}
-                    </button>
-                    <button onClick={onDelete} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
-                        <Trash2 size={18} />
-                    </button>
-                </div>
+                {!isReadonly && (
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={onSave}
+                            disabled={q.saving}
+                            className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm ${q.saved ? 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50' : 'bg-primary text-white border border-transparent hover:bg-black'}`}
+                        >
+                            {q.saving ? (
+                                <span className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                                <Save size={14} />
+                            )}
+                            {q.saving ? 'Saving...' : q.saved ? 'Update' : 'Save'}
+                        </button>
+                        <button onClick={onDelete} className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors">
+                            <Trash2 size={18} />
+                        </button>
+                    </div>
+                )}
             </div>
 
             <div className="p-6 flex flex-col gap-6">
@@ -427,9 +442,10 @@ function MCQCard({ index, question: q, onUpdateText, onUpdateOption, onSetCorrec
                     <textarea
                         value={q.text}
                         onChange={e => onUpdateText(e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary resize-none p-4 text-base font-medium text-slate-900 bg-slate-50 outline-none transition-all placeholder:text-slate-400"
+                        className="w-full border border-slate-200 rounded-lg focus:ring-1 focus:ring-primary focus:border-primary resize-none p-4 text-base font-medium text-slate-900 bg-slate-50 outline-none transition-all placeholder:text-slate-400 disabled:bg-slate-100 disabled:text-slate-600"
                         placeholder="Type your question here..."
                         rows={2}
+                        disabled={isReadonly}
                     />
                 </div>
 
@@ -441,13 +457,13 @@ function MCQCard({ index, question: q, onUpdateText, onUpdateOption, onSetCorrec
                     </div>
                     <div className="flex flex-col gap-3">
                         {q.options.map((opt) => (
-                            <div key={opt.id} className={`flex items-center gap-3 rounded-lg border-2 p-3 transition-all cursor-pointer group ${opt.isCorrect ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-100 hover:border-slate-300'}`}
-                                onClick={() => onSetCorrect(opt.id)}>
+                            <div key={opt.id} className={`flex items-center gap-3 rounded-lg border-2 p-3 transition-all ${isReadonly ? '' : 'cursor-pointer'} group ${opt.isCorrect ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-100 ' + (!isReadonly && 'hover:border-slate-300')}`}
+                                onClick={() => !isReadonly && onSetCorrect(opt.id)}>
                                 {/* Correct indicator */}
                                 <button
                                     type="button"
-                                    onClick={e => { e.stopPropagation(); onSetCorrect(opt.id); }}
-                                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${opt.isCorrect ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300 group-hover:border-emerald-400'}`}
+                                    onClick={e => { e.stopPropagation(); if (!isReadonly) onSetCorrect(opt.id); }}
+                                    className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${opt.isCorrect ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300 ' + (!isReadonly && 'group-hover:border-emerald-400')}`}
                                 >
                                     {opt.isCorrect && <Check size={14} strokeWidth={3} className="text-white" />}
                                 </button>
@@ -460,8 +476,9 @@ function MCQCard({ index, question: q, onUpdateText, onUpdateOption, onSetCorrec
                                     value={opt.text}
                                     onClick={e => e.stopPropagation()}
                                     onChange={e => onUpdateOption(opt.id, e.target.value)}
-                                    className={`flex-1 bg-transparent outline-none text-sm font-medium text-slate-900 placeholder-slate-400`}
+                                    className={`flex-1 bg-transparent outline-none text-sm font-medium text-slate-900 placeholder-slate-400 disabled:text-slate-600`}
                                     placeholder={`Option ${opt.id}...`}
+                                    disabled={isReadonly}
                                 />
                                 {opt.isCorrect && (
                                     <span className="text-xs font-bold text-emerald-600 shrink-0 uppercase tracking-wider">Correct</span>
@@ -481,7 +498,8 @@ function MCQCard({ index, question: q, onUpdateText, onUpdateOption, onSetCorrec
                             step={0.5}
                             value={q.marks}
                             onChange={e => onUpdateMarks(parseFloat(e.target.value) || 0)}
-                            className="w-24 border border-slate-200 rounded-md px-3 py-1.5 text-sm font-semibold text-slate-900 text-center focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                            className="w-24 border border-slate-200 rounded-md px-3 py-1.5 text-sm font-semibold text-slate-900 text-center focus:border-primary focus:ring-1 focus:ring-primary outline-none disabled:bg-slate-100 disabled:text-slate-600"
+                            disabled={isReadonly}
                         />
                     </div>
                     <div className="flex flex-col gap-1.5">
@@ -492,7 +510,8 @@ function MCQCard({ index, question: q, onUpdateText, onUpdateOption, onSetCorrec
                             step={0.25}
                             value={q.negativeMarks}
                             onChange={e => onUpdateNegMarks(parseFloat(e.target.value) || 0)}
-                            className="w-24 border border-slate-200 rounded-md px-3 py-1.5 text-sm font-semibold text-red-600 text-center focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none"
+                            className="w-24 border border-slate-200 rounded-md px-3 py-1.5 text-sm font-semibold text-red-600 text-center focus:border-red-500 focus:ring-1 focus:ring-red-500 outline-none disabled:bg-slate-100 disabled:text-slate-600"
+                            disabled={isReadonly}
                         />
                     </div>
                     <div className="ml-auto">
