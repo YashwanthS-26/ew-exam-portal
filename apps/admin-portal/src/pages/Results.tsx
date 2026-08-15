@@ -12,6 +12,8 @@ import {
     Target,
     Activity
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface ResultsProps {
     preSelectedExamId?: string;
@@ -66,6 +68,59 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
         ? (results.reduce((sum: number, r: any) => sum + (r.score || 0), 0) / results.length).toFixed(1)
         : '0';
 
+    const generatePDF = () => {
+        if (!results || results.length === 0) return;
+
+        const doc = new jsPDF();
+        
+        // Header
+        doc.setFontSize(18);
+        doc.setTextColor(15, 23, 42);
+        doc.text('EW SHIKEN Exam Results', 14, 22);
+        
+        doc.setFontSize(11);
+        doc.setTextColor(100, 116, 139);
+        
+        const examName = selectedExamId 
+            ? completedExams.find((e: any) => e.id === selectedExamId)?.title || 'Selected Exam'
+            : 'All Exams';
+        
+        doc.text(`Exam: ${examName}`, 14, 30);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 36);
+        
+        // Stats
+        doc.text(`Total Submissions: ${results.length}`, 14, 44);
+        doc.text(`Average Score: ${avgScore}`, 80, 44);
+        doc.text(`Top Score: ${topScore}`, 140, 44);
+
+        // Table
+        const tableData = results.sort((a: any, b: any) => (b.score || 0) - (a.score || 0)).map((r: any, index: number) => {
+            const percentage = r.total_marks > 0 ? Math.round((r.score / r.total_marks) * 100) : 0;
+            return [
+                (index + 1).toString(),
+                r.student_name || '—',
+                r.roll_number || '—',
+                r.exam?.title || '—',
+                `${r.score ?? '—'} (${percentage}%)`,
+                (r.total_marks ?? '—').toString(),
+                r.status || '—',
+                r.submitted_at ? new Date(r.submitted_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
+            ];
+        });
+
+        autoTable(doc, {
+            startY: 52,
+            head: [['Rank', 'Student', 'Roll No.', 'Exam', 'Score', 'Total', 'Status', 'Submitted At']],
+            body: tableData,
+            theme: 'grid',
+            headStyles: { fillColor: [15, 23, 42] },
+            styles: { fontSize: 9, cellPadding: 3 },
+            alternateRowStyles: { fillColor: [248, 250, 252] },
+        });
+
+        doc.save(`Exam_Results_${new Date().getTime()}.pdf`);
+    };
+
     return (
         <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-slate-50 min-h-full">
             <div className="max-w-7xl mx-auto space-y-8">
@@ -95,9 +150,10 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
                             </div>
                         </div>
                         <button 
-                            onClick={() => window.print()} 
+                            onClick={generatePDF} 
                             className="bg-primary text-white text-sm font-medium py-2.5 px-4 rounded-md hover:bg-black transition-colors shadow-sm flex items-center gap-2 shrink-0"
                             title="Export Results as PDF"
+                            disabled={!results || results.length === 0}
                         >
                             <FileText size={16} />
                             <span className="hidden sm:inline">Export PDF</span>
