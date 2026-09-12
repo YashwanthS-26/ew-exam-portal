@@ -241,7 +241,7 @@ export const getResults = async (req: Request, res: Response) => {
             .select(`
                 id, student_name, roll_number, status, submission_time, created_at,
                 exam:exams(title, exam_code, duration_minutes),
-                result:results(final_score, total_marks)
+                result:results(final_score, total_marks, percentage, correct_count, wrong_count, skipped_count)
             `)
             .eq('exam_id', id)
             .order('submission_time', { ascending: false });
@@ -249,12 +249,19 @@ export const getResults = async (req: Request, res: Response) => {
         if (error) throw error;
 
         // Map the relation to what the frontend expects
-        const formatted = data.map((attempt: any) => ({
-            ...attempt,
-            score: attempt.result?.[0]?.final_score || attempt.result?.final_score || 0,
-            total_marks: attempt.result?.[0]?.total_marks || attempt.result?.total_marks || 0,
-            submitted_at: attempt.submission_time
-        }));
+        const formatted = data.map((attempt: any) => {
+            const resData = attempt.result?.[0] || attempt.result || {};
+            return {
+                ...attempt,
+                score: resData.final_score || 0,
+                total_marks: resData.total_marks || 0,
+                percentage: resData.percentage || 0,
+                correct_count: resData.correct_count || 0,
+                wrong_count: resData.wrong_count || 0,
+                skipped_count: resData.skipped_count || 0,
+                submitted_at: attempt.submission_time
+            };
+        });
 
         res.status(200).json(formatted);
     } catch (err) {
@@ -270,7 +277,7 @@ export const getAllResults = async (req: Request, res: Response) => {
             .select(`
                 id, student_name, roll_number, status, submission_time,
                 exam:exams(id, title, exam_code),
-                result:results(final_score, total_marks)
+                result:results(final_score, total_marks, percentage, correct_count, wrong_count, skipped_count)
             `)
             .in('status', ['SUBMITTED', 'FORCE_SUBMITTED', 'ENDED_BY_ADMIN', 'AUTO_SUBMITTED'])
             .order('submission_time', { ascending: false })
@@ -279,12 +286,19 @@ export const getAllResults = async (req: Request, res: Response) => {
         if (error) throw error;
 
         // Map the relation to what the frontend expects
-        const formatted = data.map((attempt: any) => ({
-            ...attempt,
-            score: attempt.result?.[0]?.final_score || attempt.result?.final_score || 0,
-            total_marks: attempt.result?.[0]?.total_marks || attempt.result?.total_marks || 0,
-            submitted_at: attempt.submission_time
-        }));
+        const formatted = data.map((attempt: any) => {
+            const resData = attempt.result?.[0] || attempt.result || {};
+            return {
+                ...attempt,
+                score: resData.final_score || 0,
+                total_marks: resData.total_marks || 0,
+                percentage: resData.percentage || 0,
+                correct_count: resData.correct_count || 0,
+                wrong_count: resData.wrong_count || 0,
+                skipped_count: resData.skipped_count || 0,
+                submitted_at: attempt.submission_time
+            };
+        });
 
         res.status(200).json(formatted);
     } catch (err) {

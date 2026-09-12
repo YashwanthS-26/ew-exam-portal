@@ -95,7 +95,8 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
 
         // Table
         const tableData = results.sort((a: any, b: any) => (b.score || 0) - (a.score || 0)).map((r: any, index: number) => {
-            const percentage = r.total_marks > 0 ? Math.round((r.score / r.total_marks) * 100) : 0;
+            const percentage = r.percentage !== undefined ? r.percentage : (r.total_marks > 0 ? Math.round((r.score / r.total_marks) * 100) : 0);
+            const attempted = (r.correct_count || 0) + (r.wrong_count || 0);
             return [
                 (index + 1).toString(),
                 r.student_name || '—',
@@ -103,6 +104,7 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
                 r.exam?.title || '—',
                 `${r.score ?? '—'} (${percentage}%)`,
                 (r.total_marks ?? '—').toString(),
+                attempted.toString(),
                 r.status || '—',
                 r.submitted_at ? new Date(r.submitted_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
             ];
@@ -110,7 +112,7 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
 
         autoTable(doc, {
             startY: 52,
-            head: [['Rank', 'Student', 'Roll No.', 'Exam', 'Score', 'Total', 'Status', 'Submitted At']],
+            head: [['Rank', 'Student', 'Roll No.', 'Exam', 'Score', 'Total', 'Attempted', 'Status', 'Submitted At']],
             body: tableData,
             theme: 'grid',
             headStyles: { fillColor: [15, 23, 42] },
@@ -233,15 +235,17 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
                                         <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Exam</th>
                                         <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Score</th>
                                         <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</th>
+                                        <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Attempted</th>
                                         <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Submitted At</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {results.sort((a: any, b: any) => (b.score || 0) - (a.score || 0)).map((result: any, index: number) => {
-                                        const percentage = result.total_marks > 0
+                                        const percentage = result.percentage !== undefined ? result.percentage : (result.total_marks > 0
                                             ? Math.round((result.score / result.total_marks) * 100)
-                                            : 0;
+                                            : 0);
+                                        const attempted = (result.correct_count || 0) + (result.wrong_count || 0);
                                         
                                         const isTopThree = index < 3;
                                             
@@ -285,6 +289,7 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-sm text-slate-500 font-medium">{result.total_marks ?? '—'}</td>
+                                                <td className="px-6 py-4 text-sm text-slate-500 font-medium">{attempted}</td>
                                                 <td className="px-6 py-4">
                                                     <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${
                                                         result.status === 'SUBMITTED' 
