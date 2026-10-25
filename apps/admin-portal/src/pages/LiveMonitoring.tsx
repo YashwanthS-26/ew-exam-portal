@@ -62,6 +62,42 @@ export default function LiveMonitoring() {
         }
     });
 
+    const { data: liveData, refetch: refetchLive } = useQuery({
+        queryKey: ['live-monitoring', id],
+        queryFn: async () => {
+            const { data } = await api.get(`/exams/${id}/monitoring`);
+            return data;
+        },
+        refetchInterval: 4000,
+        enabled: !!id,
+    });
+
+    useEffect(() => {
+        if (!liveData) return;
+        if (liveData.status === 'ACTIVE') {
+            setExamStarted(true);
+        }
+        if (Array.isArray(liveData.students)) {
+            setStudents(prev => {
+                const map = new Map<string, Student>();
+                prev.forEach(s => map.set(s.attemptId, s));
+                liveData.students.forEach((s: Student) => {
+                    const existing = map.get(s.attemptId);
+                    if (!existing) {
+                        map.set(s.attemptId, s);
+                    } else {
+                        map.set(s.attemptId, {
+                            ...existing,
+                            ...s,
+                            answered: Math.max(existing.answered || 0, s.answered || 0),
+                        });
+                    }
+                });
+                return Array.from(map.values());
+            });
+        }
+    }, [liveData]);
+
     useEffect(() => {
         if (!exam) return;
         setExamStarted(exam.status === 'ACTIVE');
@@ -79,13 +115,31 @@ export default function LiveMonitoring() {
         socket.emit('admin_monitor_exam', { examId: id });
 
         socket.on('exam_live_snapshot', (data: any) => {
-            setStudents(data.students || []);
+            if (Array.isArray(data?.students)) {
+                setStudents(prev => {
+                    const map = new Map<string, Student>();
+                    prev.forEach(s => map.set(s.attemptId, s));
+                    data.students.forEach((s: Student) => {
+                        const existing = map.get(s.attemptId);
+                        if (!existing) {
+                            map.set(s.attemptId, s);
+                        } else {
+                            map.set(s.attemptId, {
+                                ...existing,
+                                ...s,
+                                answered: Math.max(existing.answered || 0, s.answered || 0),
+                            });
+                        }
+                    });
+                    return Array.from(map.values());
+                });
+            }
         });
 
         socket.on('student_joined', (student: Student) => {
             setStudents(prev => {
                 const exists = prev.find(s => s.attemptId === student.attemptId);
-                if (exists) return prev.map(s => s.attemptId === student.attemptId ? student : s);
+                if (exists) return prev.map(s => s.attemptId === student.attemptId ? { ...s, ...student } : s);
                 return [...prev, student];
             });
             toast.success(`${student.name} joined!`);
@@ -106,7 +160,7 @@ export default function LiveMonitoring() {
 
         socket.on('student_progress', (update: { attemptId: string; answered: number }) => {
             setStudents(prev => prev.map(s =>
-                s.attemptId === update.attemptId ? { ...s, answered: update.answered } : s
+                s.attemptId === update.attemptId ? { ...s, answered: Math.max(s.answered || 0, update.answered) } : s
             ));
         });
 
@@ -449,7 +503,7 @@ export default function LiveMonitoring() {
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
+                                <table className="w-full text-left border-collapse min-w-[640px]">
                                     <thead>
                                         <tr className="bg-slate-50 border-b border-slate-200">
                                             <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</th>

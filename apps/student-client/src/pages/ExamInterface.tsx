@@ -158,7 +158,7 @@ export default function ExamInterface() {
 
     useEffect(() => {
         if (!session) return;
-        const socket = io(SOCKET_URL, { transports: ['websocket'] });
+        const socket = io(SOCKET_URL, { transports: ['polling', 'websocket'] });
         socketRef.current = socket;
         socket.on('connect', () => {
             socket.emit('join_exam', {

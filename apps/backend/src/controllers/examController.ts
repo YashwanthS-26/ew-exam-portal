@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
+import { liveExams } from '../socket';
 
 // Helper to check if exam code is unique
 const isExamCodeUnique = async (code: string, excludeId?: string) => {
@@ -303,6 +304,77 @@ export const getAllResults = async (req: Request, res: Response) => {
         res.status(200).json(formatted);
     } catch (err) {
         console.error('Get all results error:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+export const getLiveMonitoring = async (req: Request, res: Response) => {
+    try {
+        const id = String(req.params.id);
+        const { data: dbExam, error: examErr } = await supabase
+            .from('exams')
+            .select('id, title, exam_code, start_time, duration_minutes, status')
+            .eq('id', id)
+            .single();
+
+        if (examErr || !dbExam) {
+            return res.status(404).json({ error: 'Exam not found' });
+        }
+
+        const { data: attempts, error: attErr } = await supabase
+            .from('student_attempts')
+            .select('id, student_name, roll_number, socket_id, join_time, created_at, status, submit_reason')
+            .eq('exam_id', id)
+            .order('created_at', { ascending: true });
+
+        if (attErr) throw attErr;
+
+        const memExam = liveExams.get(id);
+
+        const attemptIds = (attempts || []).map(a => a.id);
+        const answerCounts: Record<string, number> = {};
+        if (attemptIds.length > 0) {
+            const { data: ansData } = await supabase
+                .from('student_answers')
+                .select('attempt_id')
+                .in('attempt_id', attemptIds)
+                .not('selected_option', 'is', null);
+
+            if (ansData) {
+                for (const ans of ansData) {
+                    answerCounts[ans.attempt_id] = (answerCounts[ans.attempt_id] || 0) + 1;
+                }
+            }
+        }
+
+        const students = (attempts || []).map(a => {
+            const memStudent = memExam?.students.get(a.id);
+            const label = a.submit_reason === 'network_lost' ? 'Network Lost' :
+                          a.submit_reason === 'app_closed' ? 'App Closed' :
+                          a.submit_reason === 'timeout' ? 'Time Expired' : 
+                          (a.submit_reason && a.submit_reason !== 'normal' ? a.submit_reason : undefined);
+
+            return {
+                attemptId: a.id,
+                name: a.student_name,
+                rollNumber: a.roll_number,
+                socketId: memStudent?.socketId || a.socket_id,
+                joinedAt: a.join_time || a.created_at,
+                status: memStudent?.status || a.status,
+                answered: Math.max(answerCounts[a.id] || 0, memStudent?.answered || 0),
+                reasonLabel: label
+            };
+        });
+
+        res.status(200).json({
+            examId: dbExam.id,
+            examCode: dbExam.exam_code,
+            startedAt: dbExam.start_time,
+            status: dbExam.status,
+            students
+        });
+    } catch (err) {
+        console.error('Get live monitoring error:', err);
         res.status(500).json({ error: 'Internal server error' });
     }
 };

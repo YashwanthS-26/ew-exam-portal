@@ -9,7 +9,7 @@ class SocketService {
   connect() {
     if (!this.socket) {
       this.socket = io(SOCKET_URL, {
-        transports: ['websocket'],
+        transports: ['polling', 'websocket'],
         autoConnect: true,
         reconnection: true,
         reconnectionAttempts: Infinity,
@@ -35,6 +35,9 @@ class SocketService {
 
   setMonitorExamId(examId: string | null) {
     this.monitorExamId = examId;
+    if (examId && this.socket?.connected) {
+      this.socket.emit('admin_monitor_exam', { examId });
+    }
   }
 
   disconnect() {

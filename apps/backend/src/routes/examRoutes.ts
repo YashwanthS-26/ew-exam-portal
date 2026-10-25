@@ -3,7 +3,7 @@ import {
     createExam, getExams, getExam, publishExam, getStats,
     addQuestions, getExamQuestions, updateExam, getResults, getAllResults,
     deleteExam, addSingleQuestion, deleteSingleQuestion, joinExam,
-    validateExam, grantReattempt, resumeExam
+    validateExam, grantReattempt, resumeExam, getLiveMonitoring
 } from '../controllers/examController';
 import { authMiddleware } from '../middleware/authMiddleware';
 
@@ -35,6 +35,9 @@ router.delete('/:id/questions/:qid', authMiddleware, deleteSingleQuestion);
 
 // Results
 router.get('/:id/results', authMiddleware, getResults);
+
+// Live Monitoring
+router.get('/:id/monitoring', authMiddleware, getLiveMonitoring);
 
 // Grant re-attempt to a student
 router.post('/:id/reattempt', authMiddleware, grantReattempt);

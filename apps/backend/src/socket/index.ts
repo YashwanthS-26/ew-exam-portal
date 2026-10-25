@@ -27,46 +27,67 @@ export const setupSocketHandlers = (io: Server) => {
 
         // Admin joins a specific exam room for live monitoring
         socket.on('admin_monitor_exam', async (payload: { examId: string }) => {
+            if (!payload?.examId) return;
             socket.join(`monitor:${payload.examId}`);
             let exam = liveExams.get(payload.examId);
             
             // If backend restarted or exam not in memory, hydrate from DB
             if (!exam) {
                 const { data: dbExam } = await supabase.from('exams').select('exam_code, start_time, status').eq('id', payload.examId).single();
-                if (dbExam && dbExam.status === 'ACTIVE') {
+                if (dbExam) {
                     exam = {
                         examId: payload.examId,
                         examCode: dbExam.exam_code,
                         startedAt: dbExam.start_time || new Date().toISOString(),
                         students: new Map(),
                     };
-                    
-                    const { data: attempts } = await supabase.from('student_attempts')
-                        .select('id, student_name, roll_number, socket_id, joined_at, status, submit_reason')
-                        .eq('exam_id', payload.examId);
-                        
-                    if (attempts) {
-                        for (const a of attempts) {
-                            const { count } = await supabase.from('student_answers').select('*', { count: 'exact', head: true }).eq('attempt_id', a.id);
-                            
-                            const label = a.submit_reason === 'network_lost' ? 'Network Lost' :
-                                      a.submit_reason === 'app_closed' ? 'App Closed' :
-                                      a.submit_reason === 'timeout' ? 'Time Expired' : 
-                                      (a.submit_reason ? 'Normal' : undefined);
-                                      
-                            exam.students.set(a.id, {
-                                attemptId: a.id,
-                                name: a.student_name,
-                                rollNumber: a.roll_number,
-                                socketId: a.socket_id,
-                                joinedAt: a.joined_at,
-                                status: a.status,
-                                answered: count || 0,
-                                reasonLabel: label
-                            });
+                    liveExams.set(payload.examId, exam);
+                }
+            }
+
+            // Always sync latest attempts and answers from DB
+            const { data: attempts, error: attError } = await supabase.from('student_attempts')
+                .select('id, student_name, roll_number, socket_id, join_time, created_at, status, submit_reason')
+                .eq('exam_id', payload.examId);
+                
+            if (attError) {
+                console.error('Error fetching student attempts for live monitor:', attError);
+            }
+
+            if (attempts && exam) {
+                const attemptIds = attempts.map(a => a.id);
+                const answerCounts: Record<string, number> = {};
+                if (attemptIds.length > 0) {
+                    const { data: ansData } = await supabase
+                        .from('student_answers')
+                        .select('attempt_id')
+                        .in('attempt_id', attemptIds)
+                        .not('selected_option', 'is', null);
+
+                    if (ansData) {
+                        for (const ans of ansData) {
+                            answerCounts[ans.attempt_id] = (answerCounts[ans.attempt_id] || 0) + 1;
                         }
                     }
-                    liveExams.set(payload.examId, exam);
+                }
+
+                for (const a of attempts) {
+                    const memStudent = exam.students.get(a.id);
+                    const label = a.submit_reason === 'network_lost' ? 'Network Lost' :
+                              a.submit_reason === 'app_closed' ? 'App Closed' :
+                              a.submit_reason === 'timeout' ? 'Time Expired' : 
+                              (a.submit_reason && a.submit_reason !== 'normal' ? a.submit_reason : undefined);
+                              
+                    exam.students.set(a.id, {
+                        attemptId: a.id,
+                        name: a.student_name,
+                        rollNumber: a.roll_number,
+                        socketId: memStudent?.socketId || a.socket_id,
+                        joinedAt: a.join_time || a.created_at,
+                        status: memStudent?.status || a.status,
+                        answered: Math.max(answerCounts[a.id] || 0, memStudent?.answered || 0),
+                        reasonLabel: label
+                    });
                 }
             }
 
@@ -198,10 +219,13 @@ export const setupSocketHandlers = (io: Server) => {
                 .eq('id', payload.attemptId);
 
             // Get accurate answered count from DB in case of reconnect
-            const { count: answeredCount } = await supabase
+            const { data: ansData } = await supabase
                 .from('student_answers')
-                .select('*', { count: 'exact', head: true })
-                .eq('attempt_id', payload.attemptId);
+                .select('id')
+                .eq('attempt_id', payload.attemptId)
+                .not('selected_option', 'is', null);
+
+            const answeredCount = ansData?.length || 0;
 
             const studentInfo = {
                 attemptId: payload.attemptId,
@@ -210,14 +234,22 @@ export const setupSocketHandlers = (io: Server) => {
                 socketId: socket.id,
                 joinedAt: new Date().toISOString(),
                 status: 'IN_PROGRESS',
-                answered: answeredCount || 0,
+                answered: answeredCount,
             };
 
             // Update live map
-            const exam = liveExams.get(payload.examId);
-            if (exam) {
-                exam.students.set(payload.attemptId, studentInfo);
+            let exam = liveExams.get(payload.examId);
+            if (!exam) {
+                const { data: dbExam } = await supabase.from('exams').select('exam_code, start_time').eq('id', payload.examId).single();
+                exam = {
+                    examId: payload.examId,
+                    examCode: dbExam?.exam_code || 'UNKNOWN',
+                    startedAt: dbExam?.start_time || new Date().toISOString(),
+                    students: new Map(),
+                };
+                liveExams.set(payload.examId, exam);
             }
+            exam.students.set(payload.attemptId, studentInfo);
 
             // Notify admins
             io.to('admin_room').emit('student_connected', { ...studentInfo, examId: payload.examId, examCode: exam?.examCode });
@@ -233,9 +265,34 @@ export const setupSocketHandlers = (io: Server) => {
                 }
 
                 if (payload.examId && payload.answers) {
-                    const exam = liveExams.get(payload.examId);
+                    let exam = liveExams.get(payload.examId);
+                    if (!exam) {
+                        const { data: dbExam } = await supabase.from('exams').select('exam_code, start_time').eq('id', payload.examId).single();
+                        exam = {
+                            examId: payload.examId,
+                            examCode: dbExam?.exam_code || 'UNKNOWN',
+                            startedAt: dbExam?.start_time || new Date().toISOString(),
+                            students: new Map(),
+                        };
+                        liveExams.set(payload.examId, exam);
+                    }
                     if (exam) {
-                        const student = exam.students.get(payload.attemptId);
+                        let student = exam.students.get(payload.attemptId);
+                        if (!student) {
+                            const { data: att } = await supabase.from('student_attempts').select('student_name, roll_number, socket_id, join_time, created_at, status').eq('id', payload.attemptId).single();
+                            if (att) {
+                                student = {
+                                    attemptId: payload.attemptId,
+                                    name: att.student_name,
+                                    rollNumber: att.roll_number,
+                                    socketId: att.socket_id || socket.id,
+                                    joinedAt: att.join_time || att.created_at,
+                                    status: att.status,
+                                    answered: 0
+                                };
+                                exam.students.set(payload.attemptId, student);
+                            }
+                        }
                         if (student) {
                             const nonNullCount = payload.answers.filter(a => a.selectedOption !== null).length;
                             student.answered = Math.max(student.answered || 0, nonNullCount);
@@ -267,10 +324,36 @@ export const setupSocketHandlers = (io: Server) => {
             socket.emit('exam_submitted', { success: true, result });
 
             // Update live map
-            const exam = liveExams.get(payload.examId);
+            let exam = liveExams.get(payload.examId);
+            if (!exam) {
+                const { data: dbExam } = await supabase.from('exams').select('exam_code, start_time').eq('id', payload.examId).single();
+                exam = {
+                    examId: payload.examId,
+                    examCode: dbExam?.exam_code || 'UNKNOWN',
+                    startedAt: dbExam?.start_time || new Date().toISOString(),
+                    students: new Map(),
+                };
+                liveExams.set(payload.examId, exam);
+            }
             if (exam) {
-                const student = exam.students.get(payload.attemptId);
-                if (student) student.status = 'SUBMITTED';
+                let student = exam.students.get(payload.attemptId);
+                if (!student) {
+                    const { data: att } = await supabase.from('student_attempts').select('student_name, roll_number, socket_id, join_time, created_at').eq('id', payload.attemptId).single();
+                    if (att) {
+                        student = {
+                            attemptId: payload.attemptId,
+                            name: att.student_name,
+                            rollNumber: att.roll_number,
+                            socketId: att.socket_id || socket.id,
+                            joinedAt: att.join_time || att.created_at,
+                            status: 'SUBMITTED',
+                            answered: 0
+                        };
+                        exam.students.set(payload.attemptId, student);
+                    }
+                } else {
+                    student.status = 'SUBMITTED';
+                }
             }
 
             // Notify admins with reason
