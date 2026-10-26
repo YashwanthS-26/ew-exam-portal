@@ -240,7 +240,7 @@ export const getResults = async (req: Request, res: Response) => {
         const { data, error } = await supabase
             .from('student_attempts')
             .select(`
-                id, student_name, roll_number, status, submission_time, created_at,
+                id, student_name, roll_number, status, submission_time, created_at, assigned_question_ids,
                 exam:exams(title, exam_code, duration_minutes),
                 result:results(final_score, total_marks, percentage, correct_count, wrong_count, skipped_count)
             `)
@@ -252,14 +252,33 @@ export const getResults = async (req: Request, res: Response) => {
         // Map the relation to what the frontend expects
         const formatted = data.map((attempt: any) => {
             const resData = attempt.result?.[0] || attempt.result || {};
+            const correctCount = resData.correct_count ?? 0;
+            const wrongCount = resData.wrong_count ?? 0;
+            const skippedCount = resData.skipped_count ?? 0;
+            const attempted = correctCount + wrongCount;
+            const score = resData.final_score !== undefined ? Number(resData.final_score) : 0;
+
+            let totalMarks = Number(resData.total_marks || 0);
+            const assignedCount = attempt.assigned_question_ids?.length || 0;
+
+            // Fix corrupted total_marks: fallback to assigned_question_ids length if total_marks is 0 or equal to score when assignedCount is greater
+            if ((totalMarks === 0 || (totalMarks === score && assignedCount > totalMarks)) && assignedCount > 0) {
+                totalMarks = assignedCount;
+            }
+
+            const percentage = totalMarks > 0 
+                ? Number(((score / totalMarks) * 100).toFixed(2)) 
+                : (resData.percentage !== undefined ? Number(resData.percentage) : 0);
+
             return {
                 ...attempt,
-                score: resData.final_score || 0,
-                total_marks: resData.total_marks || 0,
-                percentage: resData.percentage || 0,
-                correct_count: resData.correct_count || 0,
-                wrong_count: resData.wrong_count || 0,
-                skipped_count: resData.skipped_count || 0,
+                score,
+                total_marks: totalMarks,
+                percentage,
+                correct_count: correctCount,
+                wrong_count: wrongCount,
+                skipped_count: skippedCount,
+                attempted,
                 submitted_at: attempt.submission_time
             };
         });
@@ -276,7 +295,7 @@ export const getAllResults = async (req: Request, res: Response) => {
         const { data, error } = await supabase
             .from('student_attempts')
             .select(`
-                id, student_name, roll_number, status, submission_time,
+                id, student_name, roll_number, status, submission_time, assigned_question_ids,
                 exam:exams(id, title, exam_code),
                 result:results(final_score, total_marks, percentage, correct_count, wrong_count, skipped_count)
             `)
@@ -289,14 +308,33 @@ export const getAllResults = async (req: Request, res: Response) => {
         // Map the relation to what the frontend expects
         const formatted = data.map((attempt: any) => {
             const resData = attempt.result?.[0] || attempt.result || {};
+            const correctCount = resData.correct_count ?? 0;
+            const wrongCount = resData.wrong_count ?? 0;
+            const skippedCount = resData.skipped_count ?? 0;
+            const attempted = correctCount + wrongCount;
+            const score = resData.final_score !== undefined ? Number(resData.final_score) : 0;
+
+            let totalMarks = Number(resData.total_marks || 0);
+            const assignedCount = attempt.assigned_question_ids?.length || 0;
+
+            // Fix corrupted total_marks: fallback to assigned_question_ids length if total_marks is 0 or equal to score when assignedCount is greater
+            if ((totalMarks === 0 || (totalMarks === score && assignedCount > totalMarks)) && assignedCount > 0) {
+                totalMarks = assignedCount;
+            }
+
+            const percentage = totalMarks > 0 
+                ? Number(((score / totalMarks) * 100).toFixed(2)) 
+                : (resData.percentage !== undefined ? Number(resData.percentage) : 0);
+
             return {
                 ...attempt,
-                score: resData.final_score || 0,
-                total_marks: resData.total_marks || 0,
-                percentage: resData.percentage || 0,
-                correct_count: resData.correct_count || 0,
-                wrong_count: resData.wrong_count || 0,
-                skipped_count: resData.skipped_count || 0,
+                score,
+                total_marks: totalMarks,
+                percentage,
+                correct_count: correctCount,
+                wrong_count: wrongCount,
+                skipped_count: skippedCount,
+                attempted,
                 submitted_at: attempt.submission_time
             };
         });
@@ -558,7 +596,6 @@ export const resumeExam = async (req: Request, res: Response) => {
 
 // ─── PUBLIC: Student joins an exam ───────────────────────────────────────────
 export const joinExam = async (req: Request, res: Response) => {
-    require('fs').writeFileSync('c:\\Business\\exam\\ew-exam-portal\\apps\\backend\\joinExam_executed.txt', 'EXECUTED ' + Date.now());
     try {
         const { exam_code, student_name, roll_number, department } = req.body;
         const normalizedCode = String(exam_code || '').replace(/\s+/g, '').trim();
@@ -658,7 +695,6 @@ export const joinExam = async (req: Request, res: Response) => {
             }
         } else {
             assignedQuestionIds = questions.map(q => q.id);
-            require('fs').writeFileSync('c:\\Business\\exam\\ew-exam-portal\\apps\\backend\\debug.json', JSON.stringify({ assignedQuestionIds, firstQuestion: questions[0] }, null, 2));
             const { data: attempt, error: attErr } = await supabase
                 .from('student_attempts')
                 .insert({

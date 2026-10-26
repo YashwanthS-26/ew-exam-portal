@@ -22,13 +22,21 @@ export const evaluateExam = async (attemptId: string) => {
         // Check if already evaluated — do NOT re-evaluate on normal path
         const { data: existingResult } = await supabase
             .from('results')
-            .select('id')
+            .select('*')
             .eq('attempt_id', attemptId)
             .single();
 
         if (existingResult) {
             console.log(`[EVALUATE] Already evaluated (result id=${existingResult.id}), skipping.`);
-            return { success: true, message: 'Already evaluated' };
+            return {
+                success: true,
+                message: 'Already evaluated',
+                score: existingResult.final_score,
+                correct: existingResult.correct_count,
+                incorrect: existingResult.wrong_count,
+                skipped: existingResult.skipped_count,
+                totalMarks: existingResult.total_marks
+            };
         }
 
         // Fetch student's saved answers
@@ -99,7 +107,7 @@ export const evaluateExam = async (attemptId: string) => {
                 correct_count: correctCount,
                 wrong_count: wrongCount,
                 skipped_count: skippedCount,
-                total_marks: totalMarks,
+                total_marks: maxPossibleMarks,
                 negative_marks: negativeMarksTotal,
                 final_score: totalMarks,
                 percentage: Number(percentage.toFixed(2))

@@ -96,15 +96,17 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
         // Table
         const tableData = results.sort((a: any, b: any) => (b.score || 0) - (a.score || 0)).map((r: any, index: number) => {
             const percentage = r.percentage !== undefined ? r.percentage : (r.total_marks > 0 ? Math.round((r.score / r.total_marks) * 100) : 0);
-            const attempted = (r.correct_count || 0) + (r.wrong_count || 0);
+            const attempted = r.attempted !== undefined ? r.attempted : ((r.correct_count || 0) + (r.wrong_count || 0));
+            const correct = r.correct_count ?? 0;
             return [
                 (index + 1).toString(),
                 r.student_name || '—',
                 r.roll_number || '—',
                 r.exam?.title || '—',
                 `${r.score ?? '—'} (${percentage}%)`,
-                (r.total_marks ?? '—').toString(),
+                correct.toString(),
                 attempted.toString(),
+                (r.total_marks ?? '—').toString(),
                 r.status || '—',
                 r.submitted_at ? new Date(r.submitted_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'
             ];
@@ -112,11 +114,11 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
 
         autoTable(doc, {
             startY: 52,
-            head: [['Rank', 'Student', 'Roll No.', 'Exam', 'Score', 'Total', 'Attempted', 'Status', 'Submitted At']],
+            head: [['Rank', 'Student', 'Roll No.', 'Exam', 'Score', 'Correct', 'Attempted', 'Total Marks', 'Status', 'Submitted At']],
             body: tableData,
             theme: 'grid',
             headStyles: { fillColor: [15, 23, 42] },
-            styles: { fontSize: 9, cellPadding: 3 },
+            styles: { fontSize: 8, cellPadding: 2.5 },
             alternateRowStyles: { fillColor: [248, 250, 252] },
         });
 
@@ -229,15 +231,16 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
                             <table className="w-full text-left border-collapse">
                                 <thead>
                                     <tr className="bg-white border-b border-slate-200">
-                                        <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-16">Rank</th>
-                                        <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Student</th>
-                                        <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Roll No.</th>
-                                        <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Exam</th>
-                                        <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Score</th>
-                                        <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</th>
-                                        <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Attempted</th>
-                                        <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
-                                        <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Submitted At</th>
+                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider w-14">Rank</th>
+                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Student</th>
+                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Roll No.</th>
+                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Exam</th>
+                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Score</th>
+                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Correct</th>
+                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Attempted</th>
+                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Marks</th>
+                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                                        <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Submitted At</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
@@ -245,13 +248,13 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
                                         const percentage = result.percentage !== undefined ? result.percentage : (result.total_marks > 0
                                             ? Math.round((result.score / result.total_marks) * 100)
                                             : 0);
-                                        const attempted = (result.correct_count || 0) + (result.wrong_count || 0);
-                                        
+                                        const attempted = result.attempted !== undefined ? result.attempted : ((result.correct_count || 0) + (result.wrong_count || 0));
+                                        const correct = result.correct_count ?? 0;
                                         const isTopThree = index < 3;
                                             
                                         return (
                                             <tr key={result.id} className="hover:bg-slate-50 transition-colors">
-                                                <td className="px-6 py-4">
+                                                <td className="px-5 py-4">
                                                     <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
                                                         index === 0 ? 'bg-amber-100 text-amber-700' :
                                                         index === 1 ? 'bg-slate-200 text-slate-700' :
@@ -261,20 +264,20 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
                                                         {index + 1}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-5 py-4">
                                                     <p className={`text-sm font-semibold ${isTopThree ? 'text-slate-900' : 'text-slate-700'}`}>
                                                         {result.student_name || '—'}
                                                     </p>
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-5 py-4">
                                                     <code className="text-xs font-mono text-slate-600 bg-slate-100 px-2 py-1 rounded">
                                                         {result.roll_number || '—'}
                                                     </code>
                                                 </td>
-                                                <td className="px-6 py-4 text-sm text-slate-600 font-medium">
+                                                <td className="px-5 py-4 text-sm text-slate-600 font-medium">
                                                     {result.exam?.title || '—'}
                                                 </td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-5 py-4">
                                                     <div className="flex items-center gap-2">
                                                         <span className={`text-sm font-bold ${
                                                             percentage >= 80 ? 'text-emerald-600' : 
@@ -288,9 +291,10 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
                                                         </span>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4 text-sm text-slate-500 font-medium">{result.total_marks ?? '—'}</td>
-                                                <td className="px-6 py-4 text-sm text-slate-500 font-medium">{attempted}</td>
-                                                <td className="px-6 py-4">
+                                                <td className="px-5 py-4 text-sm font-semibold text-emerald-600">{correct}</td>
+                                                <td className="px-5 py-4 text-sm text-slate-600 font-medium">{attempted}</td>
+                                                <td className="px-5 py-4 text-sm text-slate-500 font-medium">{result.total_marks ?? '—'}</td>
+                                                <td className="px-5 py-4">
                                                     <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide uppercase ${
                                                         result.status === 'SUBMITTED' 
                                                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
@@ -299,7 +303,7 @@ export default function Results({ preSelectedExamId }: ResultsProps) {
                                                         {result.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 text-xs text-slate-500 font-medium">
+                                                <td className="px-5 py-4 text-xs text-slate-500 font-medium">
                                                     {result.submitted_at ? new Date(result.submitted_at).toLocaleString([], {
                                                         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                                                     }) : '—'}

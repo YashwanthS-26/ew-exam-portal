@@ -69,7 +69,10 @@ export default function ExamInterface() {
     const [syncQueueSize, setSyncQueueSize] = useState(0);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [online, setOnline] = useState(navigator.onLine);
-    const autosaveRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const [isOfflineGracePeriod, setIsOfflineGracePeriod] = useState(false);
+    const [offlineCountdown, setOfflineCountdown] = useState(120); // 2-minute cooldown
+    const autosaveRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const isDirtyRef = useRef(false);
     const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI;
 
     useEffect(() => {
@@ -191,37 +194,58 @@ export default function ExamInterface() {
 
     useEffect(() => {
         if (submitted || !session) return;
-        autosaveRef.current = setInterval(async () => {
-            try {
-                const allAnswers = Object.entries(answersRef.current)
-                    .map(([questionId, selectedOption]) => ({ questionId, selectedOption: selectedOption ?? null }));
-                if (allAnswers.length === 0) return;
-                setSyncQueueSize(allAnswers.length);
-                const res = await fetch(`${API_URL}/api/attempts/${session.attemptId}/answers`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ answers: allAnswers }),
-                    signal: AbortSignal.timeout(8000),
-                });
-                if (res.ok) {
-                    setSyncQueueSize(0);
-                    const socket = socketRef.current;
-                    if (socket?.connected && session.exam.id) {
-                        socket.emit('sync_batch', {
-                            attemptId: session.attemptId,
-                            examId: session.exam.id,
-                            answers: allAnswers,
-                        }, () => {}); 
+        let isCancelled = false;
+
+        const syncAnswers = async () => {
+            if (isCancelled || submitted) return;
+            // Only sync over network if student answered/changed an option
+            if (isDirtyRef.current) {
+                try {
+                    const allAnswers = Object.entries(answersRef.current)
+                        .map(([questionId, selectedOption]) => ({ questionId, selectedOption: selectedOption ?? null }));
+                    if (allAnswers.length > 0) {
+                        setSyncQueueSize(allAnswers.length);
+                        const res = await fetch(`${API_URL}/api/attempts/${session.attemptId}/answers`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ answers: allAnswers }),
+                            signal: AbortSignal.timeout(8000),
+                        });
+                        if (res.ok) {
+                            isDirtyRef.current = false;
+                            setSyncQueueSize(0);
+                            const socket = socketRef.current;
+                            if (socket?.connected && session.exam.id) {
+                                socket.emit('sync_batch', {
+                                    attemptId: session.attemptId,
+                                    examId: session.exam.id,
+                                    answers: allAnswers,
+                                }, () => {}); 
+                            }
+                        }
                     }
+                } catch (e) {
+                    console.warn('[SyncWorker] HTTP sync failed, will retry:', e);
                 }
-            } catch (e) {
-                console.warn('[SyncWorker] HTTP sync failed, will retry:', e);
             }
-        }, 5000);
-        return () => { if (autosaveRef.current) clearInterval(autosaveRef.current); };
+            // Add 5-8s jitter to distribute student requests and avoid burst concurrency
+            if (!isCancelled && !submitted) {
+                const jitter = Math.floor(Math.random() * 3000);
+                autosaveRef.current = setTimeout(syncAnswers, 5000 + jitter) as any;
+            }
+        };
+
+        const initialJitter = Math.floor(Math.random() * 2000);
+        autosaveRef.current = setTimeout(syncAnswers, 4000 + initialJitter) as any;
+
+        return () => {
+            isCancelled = true;
+            if (autosaveRef.current) clearTimeout(autosaveRef.current as any);
+        };
     }, [submitted, session]);
 
     const handleSelectOption = (questionId: string, optId: string) => {
+        isDirtyRef.current = true;
         setAnswers(prev => {
             const next = { ...prev, [questionId]: optId };
             saveAnswer(questionId, optId);
@@ -230,6 +254,7 @@ export default function ExamInterface() {
     };
 
     const handleClearAnswer = (questionId: string) => {
+        isDirtyRef.current = true;
         setAnswers(prev => {
             const next = { ...prev, [questionId]: null };
             saveAnswer(questionId, null);
@@ -250,7 +275,7 @@ export default function ExamInterface() {
         if (submitted) return;
         setIsSubmitting(true);
         setShowSubmitConfirm(false);
-        if (autosaveRef.current) clearInterval(autosaveRef.current);
+        if (autosaveRef.current) clearTimeout(autosaveRef.current as any);
 
         const allAnswers = Object.entries(answersRef.current)
             .map(([questionId, selectedOption]) => ({ questionId, selectedOption: selectedOption ?? null }));
@@ -302,12 +327,99 @@ export default function ExamInterface() {
         }, 5000);
     };
 
+    const pushAllAnswersNow = useCallback(async () => {
+        if (!session) return;
+        try {
+            const allAnswers = Object.entries(answersRef.current)
+                .map(([questionId, selectedOption]) => ({ questionId, selectedOption: selectedOption ?? null }));
+            if (allAnswers.length === 0) return;
+            const res = await fetch(`${API_URL}/api/attempts/${session.attemptId}/answers`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answers: allAnswers }),
+                signal: AbortSignal.timeout(6000),
+            });
+            if (res.ok) {
+                isDirtyRef.current = false;
+                setSyncQueueSize(0);
+            }
+        } catch (e) {
+            console.warn('[ReconnectSync] Push answers failed:', e);
+        }
+    }, [session]);
+
+    // Handle offline event & 2-minute cooldown window
     useEffect(() => {
         if (submitted || !session) return;
-        const handleOffline = () => handleSubmit(true, 'network_lost');
+
+        const handleOffline = () => {
+            console.warn('[Network] Offline detected. Initiating 2-minute reconnection grace period.');
+            setIsOfflineGracePeriod(true);
+            setOfflineCountdown(120);
+        };
+
+        const handleOnline = async () => {
+            console.log('[Network] Online detected! Restoring active session...');
+            setIsOfflineGracePeriod(false);
+            setOfflineCountdown(120);
+            if (socketRef.current && !socketRef.current.connected) {
+                socketRef.current.connect();
+            }
+            await pushAllAnswersNow();
+        };
+
         window.addEventListener('offline', handleOffline);
-        return () => window.removeEventListener('offline', handleOffline);
-    }, [submitted, session]);
+        window.addEventListener('online', handleOnline);
+
+        return () => {
+            window.removeEventListener('offline', handleOffline);
+            window.removeEventListener('online', handleOnline);
+        };
+    }, [submitted, session, pushAllAnswersNow]);
+
+    // Active probe and countdown timer when in offline grace period
+    useEffect(() => {
+        if (!isOfflineGracePeriod || submitted) return;
+
+        const timer = setInterval(() => {
+            setOfflineCountdown(prev => {
+                if (prev <= 1) {
+                    clearInterval(timer);
+                    console.error('[Network] 2-minute offline cooldown expired. Auto-submitting exam.');
+                    handleSubmit(true, 'network_lost');
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        // Active connectivity probe every 3 seconds to auto-recover immediately
+        const probeInterval = setInterval(async () => {
+            try {
+                const res = await fetch(`${API_URL}/api/health`, {
+                    method: 'GET',
+                    signal: AbortSignal.timeout(2500),
+                    cache: 'no-store'
+                });
+                if (res.ok) {
+                    console.log('[Network Probe] Health check passed. Connection restored!');
+                    setIsOfflineGracePeriod(false);
+                    setOfflineCountdown(120);
+                    if (socketRef.current && !socketRef.current.connected) {
+                        socketRef.current.connect();
+                    }
+                    await pushAllAnswersNow();
+                }
+            } catch {
+                // Connection still not back, wait for next probe
+            }
+        }, 3000);
+
+        return () => {
+            clearInterval(timer);
+            clearInterval(probeInterval);
+        };
+    }, [isOfflineGracePeriod, submitted, pushAllAnswersNow]);
 
     useEffect(() => {
         if (!isElectron || submitted || !session) return;
@@ -349,17 +461,31 @@ export default function ExamInterface() {
                     {result && (
                         <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 mb-8 text-left">
                             <p className="text-slate-500 text-sm font-semibold uppercase tracking-wider mb-2">Final Score</p>
-                            <div className="flex items-baseline gap-2 mb-2">
-                                <span className="text-4xl font-bold text-slate-900">{result.score}</span>
-                                <span className="text-xl text-slate-400">/ {result.totalMarks}</span>
+                            <div className="flex items-baseline justify-between mb-3">
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-4xl font-bold text-slate-900">{result.score}</span>
+                                    <span className="text-xl text-slate-400">/ {result.totalMarks}</span>
+                                </div>
+                                <span className="text-sm font-bold text-blue-600 bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-md">
+                                    {result.totalMarks > 0 ? ((result.score / result.totalMarks) * 100).toFixed(1) : 0}%
+                                </span>
                             </div>
-                            <div className="flex gap-4 text-sm text-slate-600 mb-4">
-                                <span className="flex items-center gap-1.5"><CheckCircle2 size={16} className="text-emerald-500"/> {result.correct}</span>
-                                <span className="flex items-center gap-1.5"><X size={16} className="text-red-500"/> {result.incorrect}</span>
-                                <span className="flex items-center gap-1.5"><Circle size={16} className="text-slate-400"/> {result.skipped}</span>
+                            <div className="grid grid-cols-3 gap-2 text-xs text-slate-600 mb-4 bg-white p-3 rounded-xl border border-slate-100">
+                                <div>
+                                    <span className="text-slate-400 block mb-0.5">Correct</span>
+                                    <span className="font-bold text-emerald-600 flex items-center gap-1"><CheckCircle2 size={13} className="text-emerald-500"/> {result.correct}</span>
+                                </div>
+                                <div>
+                                    <span className="text-slate-400 block mb-0.5">Attempted</span>
+                                    <span className="font-bold text-slate-700">{(result.correct || 0) + (result.incorrect || 0)}</span>
+                                </div>
+                                <div>
+                                    <span className="text-slate-400 block mb-0.5">Skipped</span>
+                                    <span className="font-bold text-slate-500 flex items-center gap-1"><Circle size={13} className="text-slate-400"/> {result.skipped}</span>
+                                </div>
                             </div>
                             <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                                <div className="h-full bg-blue-600 rounded-full" style={{ width: `${result.totalMarks > 0 ? (result.score / result.totalMarks) * 100 : 0}%` }} />
+                                <div className="h-full bg-blue-600 rounded-full" style={{ width: `${result.totalMarks > 0 ? Math.max(0, Math.min(100, (result.score / result.totalMarks) * 100)) : 0}%` }} />
                             </div>
                         </div>
                     )}
@@ -427,6 +553,24 @@ export default function ExamInterface() {
             </header>
 
             {/* ─── BANNERS ──────────────────────────────────────────────────────────── */}
+            {isOfflineGracePeriod && (
+                <div className="bg-amber-600 text-white px-6 py-3 flex items-center justify-between shrink-0 shadow-md">
+                    <div className="flex items-center gap-3">
+                        <WifiOff size={20} className="shrink-0 text-amber-200" />
+                        <div>
+                            <p className="font-bold text-sm">Network Connection Lost — Reconnecting</p>
+                            <p className="text-xs text-amber-100 font-medium">
+                                Your answers are safely saved locally on this machine. Session will end automatically in <strong>{formatTime(offlineCountdown)}</strong> if network is not restored.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 bg-amber-700/80 px-3.5 py-1.5 rounded-lg text-xs font-mono font-bold tracking-wider">
+                        <RefreshCcw size={14} className="animate-spin text-amber-200" />
+                        <span>{formatTime(offlineCountdown)}</span>
+                    </div>
+                </div>
+            )}
+
             {announcement && (
                 <div className="bg-amber-50 border-b border-amber-200 px-6 py-3 flex items-center gap-3 shrink-0">
                     <Info className="text-amber-600" size={18} />
