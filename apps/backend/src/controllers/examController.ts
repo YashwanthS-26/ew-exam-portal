@@ -539,7 +539,7 @@ export const validateExam = async (req: Request, res: Response) => {
 // ─── ADMIN: Grant re-attempt to a student ────────────────────────────────────
 export const grantReattempt = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params; // exam id
+        const id = String(req.params.id); // exam id
         const { rollNumber } = req.body;
 
         if (!rollNumber) {
@@ -558,6 +558,16 @@ export const grantReattempt = async (req: Request, res: Response) => {
             return res.status(400).json({ error: error.message });
         }
 
+        // Clean up in-memory live map if present
+        const exam = liveExams.get(id);
+        if (exam) {
+            for (const [attId, s] of exam.students) {
+                if (s.rollNumber === rollNumber.trim()) {
+                    exam.students.delete(attId);
+                }
+            }
+        }
+
         res.status(200).json({ message: 'Re-attempt granted. Student can now join again.' });
     } catch (err) {
         console.error('Grant reattempt error:', err);
@@ -568,23 +578,76 @@ export const grantReattempt = async (req: Request, res: Response) => {
 // ─── ADMIN: Resume exam for a student ────────────────────────────────────────
 export const resumeExam = async (req: Request, res: Response) => {
     try {
-        const { id } = req.params; // exam id
+        const id = String(req.params.id); // exam id
         const { rollNumber } = req.body;
 
         if (!rollNumber) {
             return res.status(400).json({ error: 'rollNumber is required' });
         }
 
-        // Just update the status back to WAITING so they can log in and resume
-        const { error } = await supabase
+        // Find existing attempt
+        const { data: attempt, error: findErr } = await supabase
             .from('student_attempts')
-            .update({ status: 'WAITING' })
+            .select('*')
             .eq('exam_id', id)
-            .eq('roll_number', rollNumber.trim());
+            .eq('roll_number', rollNumber.trim())
+            .single();
 
-        if (error) {
-            console.error('Resume exam error:', error);
-            return res.status(400).json({ error: error.message });
+        if (findErr || !attempt) {
+            return res.status(404).json({ error: 'Student attempt not found.' });
+        }
+
+        // 1. Delete previous row in results table so re-evaluation will generate fresh marks on next submission
+        await supabase
+            .from('results')
+            .delete()
+            .eq('attempt_id', attempt.id);
+
+        // 2. Fetch exam duration to compute time remaining
+        const { data: examData } = await supabase
+            .from('exams')
+            .select('duration_minutes')
+            .eq('id', id)
+            .single();
+
+        const durationSec = ((examData?.duration_minutes) || 30) * 60;
+        let adjustedStartTime = new Date().toISOString();
+
+        if (attempt.start_time) {
+            const startMs = new Date(attempt.start_time).getTime();
+            const lastActive = attempt.submission_time 
+                ? new Date(attempt.submission_time).getTime() 
+                : new Date(attempt.updated_at || attempt.created_at).getTime();
+            const usedSec = Math.max(0, Math.floor((lastActive - startMs) / 1000));
+            // Student gets to continue with remaining time (give at least 60 seconds if they resume)
+            const clampedUsedSec = Math.min(usedSec, Math.max(0, durationSec - 60));
+            adjustedStartTime = new Date(Date.now() - (clampedUsedSec * 1000)).toISOString();
+        }
+
+        // 3. Reset status to WAITING and adjust start_time so remaining time is preserved
+        const { error: updateErr } = await supabase
+            .from('student_attempts')
+            .update({ 
+                status: 'WAITING',
+                submission_time: null,
+                submit_reason: null,
+                start_time: adjustedStartTime
+            })
+            .eq('id', attempt.id);
+
+        if (updateErr) {
+            console.error('Resume exam error:', updateErr);
+            return res.status(400).json({ error: updateErr.message });
+        }
+
+        // Update in-memory live map
+        const liveExam = liveExams.get(id);
+        if (liveExam) {
+            const student = liveExam.students.get(attempt.id);
+            if (student) {
+                student.status = 'WAITING';
+                student.reasonLabel = undefined;
+            }
         }
 
         res.status(200).json({ message: 'Exam resumed. Student can now rejoin and continue.' });
@@ -659,18 +722,20 @@ export const joinExam = async (req: Request, res: Response) => {
         // Create attempt record — handle duplicate roll_number for same exam gracefully
         let attemptId: string | null = null;
         let assignedQuestionIds: string[] = [];
+        const totalDurationSec = (Number(exam.duration_minutes) || 30) * 60;
+        let remainingSeconds = totalDurationSec;
 
         // Check if this student already has an attempt for this exam
         const { data: existingAttempt } = await supabase
             .from('student_attempts')
-            .select('id, status, assigned_question_ids')
+            .select('*')
             .eq('exam_id', exam.id)
             .eq('roll_number', roll_number.trim())
             .single();
 
         if (existingAttempt) {
             const attempt = existingAttempt as any;
-            // Reuse existing attempt if not yet submitted
+            // CRITICAL: Block duplicate logins if already submitted or ended!
             if (['SUBMITTED', 'FORCE_SUBMITTED', 'AUTO_SUBMITTED'].includes(attempt.status)) {
                 return res.status(403).json({ error: 'You have already submitted this exam.' });
             }
@@ -678,6 +743,19 @@ export const joinExam = async (req: Request, res: Response) => {
                 return res.status(403).json({ error: 'Your exam was ended by the admin.' });
             }
             attemptId = attempt.id;
+
+            // Calculate remaining seconds accurately based on attempt's own start_time
+            if (attempt.start_time) {
+                const startMs = new Date(attempt.start_time).getTime();
+                const usedSec = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
+                remainingSeconds = Math.max(30, totalDurationSec - usedSec);
+            } else {
+                const nowISO = new Date().toISOString();
+                await supabase.from('student_attempts')
+                    .update({ start_time: nowISO })
+                    .eq('id', attemptId);
+                remainingSeconds = totalDurationSec;
+            }
             
             // If they already have assigned questions, use them
             const assignedIds = attempt.assigned_question_ids as string[];
@@ -694,7 +772,9 @@ export const joinExam = async (req: Request, res: Response) => {
                 await supabase.from('student_attempts').update({ assigned_question_ids: assignedQuestionIds }).eq('id', attemptId);
             }
         } else {
+            // Fresh attempt (First time, or after Admin granted Re-attempt)
             assignedQuestionIds = questions.map(q => q.id);
+            const nowISO = new Date().toISOString();
             const { data: attempt, error: attErr } = await supabase
                 .from('student_attempts')
                 .insert({
@@ -703,6 +783,7 @@ export const joinExam = async (req: Request, res: Response) => {
                     roll_number: roll_number.trim(),
                     department: department ? department.trim() : null,
                     status: 'WAITING',
+                    start_time: nowISO,
                     assigned_question_ids: assignedQuestionIds
                 })
                 .select('*')
@@ -720,11 +801,13 @@ export const joinExam = async (req: Request, res: Response) => {
                 });
             }
             attemptId = attempt.id;
+            remainingSeconds = totalDurationSec;
         }
 
         // Return everything the student client needs
         res.status(200).json({
             attemptId: attemptId,
+            remaining_seconds: remainingSeconds,
             exam: {
                 id: exam.id,
                 title: exam.title,

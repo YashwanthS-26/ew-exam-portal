@@ -28,6 +28,11 @@ export const evaluateExam = async (attemptId: string) => {
 
         if (existingResult) {
             console.log(`[EVALUATE] Already evaluated (result id=${existingResult.id}), skipping.`);
+            // Ensure student_attempts status is SUBMITTED even if already evaluated
+            await supabase.from('student_attempts')
+                .update({ status: 'SUBMITTED', submission_time: new Date().toISOString() })
+                .eq('id', attemptId);
+
             return {
                 success: true,
                 message: 'Already evaluated',
@@ -120,11 +125,9 @@ export const evaluateExam = async (attemptId: string) => {
 
         console.log(`[EVALUATE] Saved result OK. final_score=${totalMarks}`);
 
-        if (!['SUBMITTED', 'AUTO_SUBMITTED', 'ENDED_BY_ADMIN', 'FORCE_SUBMITTED'].includes(attempt.status)) {
-            await supabase.from('student_attempts')
-                .update({ status: 'SUBMITTED', submission_time: new Date().toISOString() })
-                .eq('id', attemptId);
-        }
+        await supabase.from('student_attempts')
+            .update({ status: 'SUBMITTED', submission_time: new Date().toISOString() })
+            .eq('id', attemptId);
 
         return {
             success: true,

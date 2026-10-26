@@ -37,6 +37,7 @@ interface ExamSession {
     attemptId: string;
     exam: ExamInfo;
     questions: Question[];
+    remaining_seconds?: number;
     studentName: string;
     rollNumber: string;
 }
@@ -133,31 +134,37 @@ export default function ExamInterface() {
 
     useEffect(() => {
         if (!session) return;
-        const durationSec = session.exam.duration_minutes * 60;
-        if (session.exam.start_time) {
-            const startMs = new Date(session.exam.start_time).getTime();
-            const elapsedSec = Math.floor((Date.now() - startMs) / 1000);
-            const remaining = Math.max(0, durationSec - elapsedSec);
-            setTimeLeft(remaining);
+        const totalDurationSec = (session.exam.duration_minutes || 30) * 60;
+        if (typeof session.remaining_seconds === 'number' && session.remaining_seconds > 0) {
+            setTimeLeft(session.remaining_seconds);
         } else {
-            setTimeLeft(durationSec);
+            setTimeLeft(totalDurationSec);
         }
     }, [session]);
 
     useEffect(() => {
-        if (submitted || timeLeft <= 0) return;
+        if (submitted) return;
         const timer = setInterval(() => {
             setTimeLeft(prev => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    handleSubmit(true);
+                    handleSubmit(true, 'timeout');
                     return 0;
                 }
-                return prev - 1;
+                const next = prev - 1;
+                try {
+                    const raw = sessionStorage.getItem('examSession');
+                    if (raw) {
+                        const parsed = JSON.parse(raw);
+                        parsed.remaining_seconds = next;
+                        sessionStorage.setItem('examSession', JSON.stringify(parsed));
+                    }
+                } catch {}
+                return next;
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [submitted, timeLeft]);
+    }, [submitted]);
 
     useEffect(() => {
         if (!session) return;

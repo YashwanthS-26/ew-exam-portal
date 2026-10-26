@@ -316,9 +316,13 @@ export const setupSocketHandlers = (io: Server) => {
             await flushAttemptToSupabase(payload.attemptId);
             const result = await evaluateExam(payload.attemptId);
 
-            // Store submit reason
+            // Store submit reason and ensure status is explicitly SUBMITTED
             await supabase.from('student_attempts')
-                .update({ submit_reason: reason })
+                .update({ 
+                    status: 'SUBMITTED', 
+                    submission_time: new Date().toISOString(),
+                    submit_reason: reason 
+                })
                 .eq('id', payload.attemptId);
 
             socket.emit('exam_submitted', { success: true, result });

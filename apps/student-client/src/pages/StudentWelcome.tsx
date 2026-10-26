@@ -157,6 +157,7 @@ export default function StudentWelcome() {
                 attemptId: data.attemptId,
                 exam: data.exam,
                 questions: data.questions,
+                remaining_seconds: data.remaining_seconds !== undefined ? data.remaining_seconds : (data.exam.duration_minutes * 60),
                 studentName: name.trim(),
                 rollNumber: registerNumber.trim(),
                 department: department.trim(),
