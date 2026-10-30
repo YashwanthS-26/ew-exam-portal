@@ -1,6 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
+    // App version
+    getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+    appVersion: ipcRenderer.sendSync('get-app-version-sync'),
+
     // Process scanning
     scanProcesses: () => ipcRenderer.invoke('scan-processes'),
 

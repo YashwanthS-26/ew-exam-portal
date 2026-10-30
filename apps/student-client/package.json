@@ -2,7 +2,7 @@
   "name": "ew-shiken-student-client",
   "productName": "EW SHIKEN",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.1.0",
   "author": "EW SHIKEN",
   "description": "Student Client for EW SHIKEN",
   "main": "dist-electron/main.js",
@@ -10,7 +10,8 @@
     "appId": "com.ewshiken.studentclient",
     "win": {
       "target": "nsis",
-      "icon": "public/icon.png"
+      "icon": "public/icon.png",
+      "artifactName": "${productName} Setup 1.1.${ext}"
     },
     "directories": {
       "output": "dist-app"

@@ -1,6 +1,11 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 import { liveExams } from '../socket';
+import { REQUIRED_APP_VERSION, validateAppVersion } from '../config/version';
+
+export const getAppVersionConfig = (_req: Request, res: Response) => {
+    res.status(200).json({ requiredVersion: REQUIRED_APP_VERSION });
+};
 
 // Helper to check if exam code is unique
 const isExamCodeUnique = async (code: string, excludeId?: string) => {
@@ -17,7 +22,8 @@ export const createExam = async (req: Request, res: Response) => {
         const {
             title, description, exam_code, duration_minutes,
             cooldown_minutes, total_questions_pool, questions_to_display,
-            randomization_enabled, show_results_to_students
+            randomization_enabled, show_results_to_students,
+            lock_question_navigation
         } = req.body;
 
         // Basic validation
@@ -47,6 +53,7 @@ export const createExam = async (req: Request, res: Response) => {
             total_questions_pool: pool,
             randomization_enabled: randomization_enabled !== undefined ? randomization_enabled : true,
             show_results_to_students: show_results_to_students !== undefined ? show_results_to_students : false,
+            lock_question_navigation: lock_question_navigation !== undefined ? Boolean(lock_question_navigation) : false,
             created_by: (req as any).user?.id || null,
             status: 'DRAFT',
             start_time: new Date().toISOString(), // Dummy value to satisfy DB NOT NULL constraint. Overwritten when exam starts.
@@ -55,7 +62,16 @@ export const createExam = async (req: Request, res: Response) => {
         // This avoids Supabase JS stripping falsy 0
         insertPayload['questions_to_display'] = toDisplay > 0 ? toDisplay : pool > 0 ? pool : 1;
 
-        const { data, error } = await supabase.from('exams').insert([insertPayload]).select().single();
+        let { data, error } = await supabase.from('exams').insert([insertPayload]).select().single();
+
+        // Graceful fallback if lock_question_navigation column has not been added to Supabase yet
+        if (error && error.code === '42703' && 'lock_question_navigation' in insertPayload) {
+            console.warn('[DB] lock_question_navigation column not found on exams table, retrying insert without it');
+            delete insertPayload.lock_question_navigation;
+            const retry = await supabase.from('exams').insert([insertPayload]).select().single();
+            data = retry.data;
+            error = retry.error;
+        }
 
         if (error) {
             console.error('Supabase insert error:', error);
@@ -221,7 +237,18 @@ export const updateExam = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const updates = req.body;
-        const { data, error } = await supabase.from('exams').update(updates).eq('id', id).select().single();
+        let { data, error } = await supabase.from('exams').update(updates).eq('id', id).select().single();
+        
+        // Fallback if lock_question_navigation column not yet migrated in Supabase
+        if (error && error.code === '42703' && 'lock_question_navigation' in updates) {
+            console.warn('[DB] lock_question_navigation column not found on exams table, retrying update without it');
+            const fallbackUpdates = { ...updates };
+            delete fallbackUpdates.lock_question_navigation;
+            const retry = await supabase.from('exams').update(fallbackUpdates).eq('id', id).select().single();
+            data = retry.data;
+            error = retry.error;
+        }
+
         if (error) {
             console.error('Update exam error:', error);
             return res.status(400).json({ error: error.message });
@@ -660,11 +687,22 @@ export const resumeExam = async (req: Request, res: Response) => {
 // ─── PUBLIC: Student joins an exam ───────────────────────────────────────────
 export const joinExam = async (req: Request, res: Response) => {
     try {
-        const { exam_code, student_name, roll_number, department } = req.body;
+        const { exam_code, student_name, roll_number, department, app_version } = req.body;
         const normalizedCode = String(exam_code || '').replace(/\s+/g, '').trim();
 
         if (!normalizedCode || !student_name || !roll_number) {
             return res.status(400).json({ error: 'exam_code, student_name and roll_number are required' });
+        }
+
+        // Validate application version
+        const versionCheck = validateAppVersion(app_version);
+        if (!versionCheck.valid) {
+            return res.status(400).json({
+                error: 'Application Update Required',
+                details: `Your application version is outdated or not supported for this examination. Required version: ${versionCheck.requiredVersion}. Installed version: ${versionCheck.clientVersion}. Please contact your examination administrator to get the latest application setup.`,
+                required_version: versionCheck.requiredVersion,
+                installed_version: versionCheck.clientVersion
+            });
         }
 
         // Look up exam
@@ -814,6 +852,7 @@ export const joinExam = async (req: Request, res: Response) => {
                 exam_code: exam.exam_code,
                 duration_minutes: exam.duration_minutes,
                 show_results_to_students: exam.show_results_to_students,
+                lock_question_navigation: Boolean(exam.lock_question_navigation),
                 start_time: exam.start_time,
             },
             questions: questions.map((q: any) => ({

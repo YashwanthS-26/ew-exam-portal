@@ -157,6 +157,16 @@ ipcMain.on('quit-app', () => {
     }
 });
 
+// ─── IPC: Get App Version ────────────────────────────────────────────────────
+ipcMain.handle('get-app-version', () => {
+    const v = app.getVersion();
+    return v.endsWith('.0') ? v.slice(0, -2) : v;
+});
+ipcMain.on('get-app-version-sync', (event) => {
+    const v = app.getVersion();
+    event.returnValue = v.endsWith('.0') ? v.slice(0, -2) : v;
+});
+
 // ─── IPC: Scan running processes for blocked apps ─────────────────────────────
 ipcMain.handle('scan-processes', async () => {
     return new Promise((resolve) => {

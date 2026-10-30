@@ -19,7 +19,8 @@ import {
     AlertTriangle,
     FileText,
     List,
-    Eye
+    Eye,
+    Lock
 } from 'lucide-react';
 
 interface Exam {
@@ -32,6 +33,7 @@ interface Exam {
     cooldown_minutes: number;
     status: 'DRAFT' | 'PUBLISHED' | 'ACTIVE' | 'ENDED';
     show_results_to_students: boolean;
+    lock_question_navigation?: boolean;
 }
 
 export default function ExamManagement() {
@@ -51,6 +53,20 @@ export default function ExamManagement() {
         },
         refetchInterval: 15000,
     });
+
+    const { data: versionInfo } = useQuery({
+        queryKey: ['app-version'],
+        queryFn: async () => {
+            try {
+                const { data } = await api.get('/exams/app-version');
+                return data as { requiredVersion: string; minimumSupportedVersion?: string };
+            } catch {
+                return { requiredVersion: '1.1' };
+            }
+        },
+        staleTime: 60000,
+    });
+    const requiredAppVersion = versionInfo?.requiredVersion || '1.1';
 
     const filteredExams = exams?.filter((e: Exam) => {
         const matchesFilter = filter === 'ALL' || e.status === filter;
@@ -114,7 +130,12 @@ export default function ExamManagement() {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <h2 className="text-2xl font-bold text-slate-900">Exam Management</h2>
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-2xl font-bold text-slate-900">Exam Management</h2>
+                            <span className="inline-flex items-center gap-1.5 text-xs bg-slate-100 text-slate-700 font-medium px-2.5 py-1 rounded-full border border-slate-200">
+                                Required App: <span className="font-mono font-semibold text-slate-900">v{requiredAppVersion}</span>
+                            </span>
+                        </div>
                         <p className="text-sm text-slate-500 mt-1">Create, manage, and monitor your examinations.</p>
                     </div>
                     <button onClick={() => navigate('/exams/create')} className="bg-primary text-white text-sm font-medium py-2.5 px-5 rounded-md hover:bg-black transition-colors shadow-sm flex items-center gap-2 self-start sm:self-auto">
@@ -170,6 +191,7 @@ export default function ExamManagement() {
                                         <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Code</th>
                                         <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Duration</th>
                                         <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Questions</th>
+                                        <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Version</th>
                                         <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Actions</th>
                                     </tr>
@@ -178,13 +200,25 @@ export default function ExamManagement() {
                                     {filteredExams.map((exam: Exam) => (
                                         <tr key={exam.id} className="hover:bg-slate-50 transition-colors group">
                                             <td className="px-6 py-4">
-                                                <p className="font-medium text-slate-900">{exam.title}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-medium text-slate-900">{exam.title}</p>
+                                                    {exam.lock_question_navigation && (
+                                                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200" title="Question navigation locked (sequential only)">
+                                                            <Lock size={10} /> Locked Nav
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <code className="text-xs font-mono text-slate-600 bg-slate-100 px-2 py-1 rounded">{exam.exam_code}</code>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-600">{exam.duration_minutes} min</td>
                                             <td className="px-6 py-4 text-sm text-slate-600">{exam.total_questions_pool || 0}</td>
+                                            <td className="px-6 py-4 text-sm">
+                                                <span className="font-mono text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded border border-slate-200 font-semibold">
+                                                    v{requiredAppVersion}
+                                                </span>
+                                            </td>
                                             <td className="px-6 py-4">{statusBadge(exam.status)}</td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center justify-end gap-1.5 flex-wrap">

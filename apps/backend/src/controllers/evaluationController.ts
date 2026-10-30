@@ -2,9 +2,9 @@ import { Request, Response } from 'express';
 import { supabase } from '../config/supabase';
 
 // ─── Core evaluation logic ────────────────────────────────────────────────────
-export const evaluateExam = async (attemptId: string) => {
+export const evaluateExam = async (attemptId: string, reason: string = 'normal') => {
     try {
-        console.log(`[EVALUATE] Starting evaluation for attempt: ${attemptId}`);
+        console.log(`[EVALUATE] Starting evaluation for attempt: ${attemptId}, reason: ${reason}`);
 
         const { data: attempt, error: attemptError } = await supabase
             .from('student_attempts')
@@ -97,6 +97,23 @@ export const evaluateExam = async (attemptId: string) => {
 
         console.log(`[EVALUATE] RESULT: correct=${correctCount} wrong=${wrongCount} skipped=${skippedCount} score=${totalMarks}`);
 
+        // If Question Navigation is locked and submission is normal (not auto-timeout/force), all questions must be answered
+        if (reason === 'normal' && skippedCount > 0) {
+            const { data: examData } = await supabase
+                .from('exams')
+                .select('lock_question_navigation')
+                .eq('id', attempt.exam_id)
+                .single();
+
+            if (examData?.lock_question_navigation) {
+                console.warn(`[EVALUATE] Rejected normal submit for attempt ${attemptId}: navigation is locked and ${skippedCount} questions were skipped.`);
+                return {
+                    success: false,
+                    error: 'All questions must be answered sequentially before submitting.'
+                };
+            }
+        }
+
         const maxPossibleMarks = allAssignedIds.reduce((sum, qId) => {
             const q = questionMap.get(qId);
             return sum + (q ? Number(q.marks) : 0);
@@ -147,12 +164,13 @@ export const evaluateExam = async (attemptId: string) => {
 // ─── HTTP: POST /api/attempts/:attemptId/submit ───────────────────────────────
 export const submitExam = async (req: Request, res: Response) => {
     const { attemptId } = req.params;
+    const { reason } = req.body || {};
     if (!attemptId) return res.status(400).json({ error: 'Missing attemptId' });
-    const result = await evaluateExam(attemptId as string);
+    const result = await evaluateExam(attemptId as string, reason || 'normal');
     if (result.success) {
         res.status(200).json({ message: 'Exam submitted and evaluated successfully' });
     } else {
-        res.status(500).json({ error: 'Evaluation failed' });
+        res.status(400).json({ error: result.error || 'Evaluation failed' });
     }
 };
 

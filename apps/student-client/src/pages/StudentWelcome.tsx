@@ -29,7 +29,7 @@ const FORBIDDEN_LABELS: Record<string, string> = {
     teamviewer_service: 'TeamViewer Service',
 };
 
-type Screen = 'scan' | 'blocked' | 'scan_error' | 'code' | 'instructions' | 'details' | 'joining';
+type Screen = 'scan' | 'blocked' | 'scan_error' | 'code' | 'instructions' | 'details' | 'joining' | 'version_error';
 
 interface ExamInfo {
     id: string;
@@ -45,6 +45,11 @@ export default function StudentWelcome() {
     const [screen, setScreen] = useState<Screen>(isElectron ? 'scan' : 'code');
     const [blockedApps, setBlockedApps] = useState<string[]>([]);
     const [scanning, setScanning] = useState(false);
+    const [clientAppVersion, setClientAppVersion] = useState<string>('1.1');
+    const [versionDetails, setVersionDetails] = useState({
+        requiredVersion: '1.1',
+        installedVersion: '1.1',
+    });
 
     // Step 1: exam code
     const [examCode, setExamCode] = useState('');
@@ -67,7 +72,16 @@ export default function StudentWelcome() {
     }, []);
 
     useEffect(() => {
-        if (isElectron) { runScan(); }
+        if (isElectron) {
+            runScan();
+            if ((window as any).electronAPI?.getAppVersion) {
+                (window as any).electronAPI.getAppVersion().then((ver: string) => {
+                    if (ver) setClientAppVersion(ver);
+                }).catch(() => {});
+            } else if ((window as any).electronAPI?.appVersion) {
+                setClientAppVersion((window as any).electronAPI.appVersion);
+            }
+        }
     }, [isElectron]);
 
     const runScan = useCallback(async () => {
@@ -145,10 +159,19 @@ export default function StudentWelcome() {
                     student_name: name.trim(),
                     roll_number: registerNumber.trim(),
                     department: department.trim(),
+                    app_version: clientAppVersion,
                 }),
             });
             const data = await res.json();
             if (!res.ok) {
+                if (data.error === 'Application Update Required' || data.required_version) {
+                    setVersionDetails({
+                        requiredVersion: data.required_version || '1.1',
+                        installedVersion: data.installed_version || clientAppVersion || 'Unknown',
+                    });
+                    setScreen('version_error');
+                    return;
+                }
                 setError(data.error || 'Failed to join exam.');
                 setScreen('details');
                 return;
@@ -161,6 +184,7 @@ export default function StudentWelcome() {
                 studentName: name.trim(),
                 rollNumber: registerNumber.trim(),
                 department: department.trim(),
+                appVersion: clientAppVersion,
             }));
             navigate('/exam');
         } catch {
@@ -269,6 +293,47 @@ export default function StudentWelcome() {
                     )}
                     <button onClick={runScan} className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-sm transition-colors">Try Again</button>
                 </div>
+            </div>
+        );
+    } else if (screen === 'version_error') {
+        content = (
+            <div className="w-[480px] max-w-full bg-white border border-red-200 rounded-2xl shadow-sm p-8 text-center flex flex-col">
+                <div className="mx-auto w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mb-6">
+                    <ShieldAlert className="text-red-600" size={24} />
+                </div>
+                <h1 className="text-2xl font-bold text-slate-900 mb-2">Application Update Required</h1>
+                <p className="text-slate-600 text-sm mb-6">
+                    Your application version is outdated or not supported for this examination.
+                </p>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 text-left text-xs text-slate-700 space-y-2 font-mono">
+                    <div className="flex justify-between items-center">
+                        <span className="text-slate-500 font-sans">Required Version:</span>
+                        <span className="font-bold text-emerald-700">v{versionDetails.requiredVersion}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-slate-500 font-sans">Installed Version:</span>
+                        <span className="font-bold text-red-600">v{versionDetails.installedVersion}</span>
+                    </div>
+                </div>
+                <p className="text-xs text-slate-500 mb-8">
+                    Please contact your examination administrator to get the latest application setup.
+                </p>
+                {isElectron ? (
+                    <button
+                        onClick={handleQuit}
+                        className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold text-sm transition-colors flex items-center justify-center gap-2"
+                    >
+                        <LogOut size={16} />
+                        Quit Application
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => { setExamInfo(null); setScreen('code'); setError(''); }}
+                        className="w-full py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-colors"
+                    >
+                        Return to Exam Code
+                    </button>
+                )}
             </div>
         );
     } else if (screen === 'joining') {

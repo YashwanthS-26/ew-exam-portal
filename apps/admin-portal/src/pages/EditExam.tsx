@@ -14,7 +14,8 @@ import {
     Shuffle,
     LayoutTemplate,
     RefreshCw,
-    ArrowLeft
+    ArrowLeft,
+    Lock
 } from 'lucide-react';
 
 export default function EditExam() {
@@ -30,6 +31,7 @@ export default function EditExam() {
         total_questions_pool: 0,
         randomization_enabled: true,
         show_results_to_students: false,
+        lock_question_navigation: false,
         status: 'DRAFT'
     });
     
@@ -48,6 +50,7 @@ export default function EditExam() {
                     total_questions_pool: res.data.total_questions_pool || 0,
                     randomization_enabled: res.data.randomization_enabled ?? true,
                     show_results_to_students: res.data.show_results_to_students ?? false,
+                    lock_question_navigation: Boolean(res.data.lock_question_navigation),
                     status: res.data.status || 'DRAFT'
                 });
                 setLoading(false);
@@ -219,6 +222,22 @@ export default function EditExam() {
                                         <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                                     </label>
                                 </div>
+                                <div className="flex items-center justify-between p-4 rounded-lg border border-slate-200 bg-slate-50">
+                                    <div>
+                                        <h3 className="text-sm font-semibold text-slate-900">Lock Question Navigation</h3>
+                                        <p className="text-xs text-slate-500 mt-0.5">When enabled, students must answer the current question before proceeding to the next question. Students cannot skip questions, return to previous questions, or navigate freely between questions.</p>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer shrink-0 ml-4">
+                                        <input 
+                                            checked={examData.lock_question_navigation} 
+                                            onChange={e => setExamData({...examData, lock_question_navigation: e.target.checked})} 
+                                            className="sr-only peer" 
+                                            type="checkbox" 
+                                            disabled={isReadonly}
+                                        />
+                                        <div className="w-11 h-6 bg-slate-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-offset-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                    </label>
+                                </div>
                             </div>
                         </div>
 
@@ -290,6 +309,10 @@ export default function EditExam() {
                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${examData.show_results_to_students ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
                                         {examData.show_results_to_students ? <Eye size={14} className="text-emerald-600" /> : <EyeOff size={14} className="text-slate-400" />}
                                         Results {examData.show_results_to_students ? 'Shown' : 'Hidden'}
+                                    </span>
+                                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium border ${examData.lock_question_navigation ? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-50 border-slate-200 text-slate-400'}`}>
+                                        <Lock size={14} className={examData.lock_question_navigation ? "text-amber-600" : "text-slate-400"} />
+                                        {examData.lock_question_navigation ? 'Navigation Locked' : 'Free Navigation'}
                                     </span>
                                 </div>
                             </div>

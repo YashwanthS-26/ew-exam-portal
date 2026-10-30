@@ -5,7 +5,7 @@ import { saveAnswerLocal, markAnswersSynced, getAllAnswersForAttempt } from '../
 import {
     Clock, CheckCircle2, Wifi, WifiOff, RefreshCcw,
     Bookmark, ChevronLeft, ChevronRight, AlertTriangle,
-    Flag, Circle, CheckCircle, Info, X, CloudCog
+    Flag, Circle, CheckCircle, Info, X, CloudCog, Lock
 } from 'lucide-react';
 
 const SOCKET_URL = (import.meta as any).env?.VITE_SOCKET_URL || 'https://ew-exam-portal-backend.onrender.com';
@@ -30,6 +30,7 @@ interface ExamInfo {
     exam_code: string;
     duration_minutes: number;
     show_results_to_students: boolean;
+    lock_question_navigation?: boolean;
     start_time?: string;
 }
 
@@ -40,9 +41,10 @@ interface ExamSession {
     remaining_seconds?: number;
     studentName: string;
     rollNumber: string;
+    appVersion?: string;
 }
 
-type QuestionStatus = 'not_visited' | 'answered' | 'marked_review' | 'current';
+type QuestionStatus = 'not_visited' | 'answered' | 'marked_review' | 'current' | 'locked';
 
 export default function ExamInterface() {
     const navigate = useNavigate();
@@ -91,7 +93,18 @@ export default function ExamInterface() {
     useEffect(() => {
         if (!session) return;
         getAllAnswersForAttempt(session.attemptId).then(loaded => {
-            setAnswers(prev => ({ ...prev, ...loaded }));
+            setAnswers(prev => {
+                const merged = { ...prev, ...loaded };
+                if (Boolean(session.exam?.lock_question_navigation) && session.questions?.length > 0) {
+                    const firstUnanswered = session.questions.findIndex(q => !merged[q.id]);
+                    if (firstUnanswered !== -1) {
+                        setCurrentIdx(firstUnanswered);
+                    } else {
+                        setCurrentIdx(session.questions.length - 1);
+                    }
+                }
+                return merged;
+            });
         });
     }, [session]);
 
@@ -176,7 +189,12 @@ export default function ExamInterface() {
                 attemptId: session.attemptId,
                 name: session.studentName,
                 rollNumber: session.rollNumber,
+                appVersion: session.appVersion || '1.1',
             });
+        });
+        socket.on('version_error', (data: any) => {
+            alert(`Application Update Required: ${data?.message || 'Your application version is outdated.'}`);
+            navigate('/');
         });
         socket.on('force_submit', () => handleSubmit(true));
         socket.on('end_student', () => {
@@ -449,10 +467,12 @@ export default function ExamInterface() {
 
     const questions = session.questions;
     const currentQ = questions[currentIdx];
+    const isNavLocked = Boolean(session.exam?.lock_question_navigation);
+    const isCurrentAnswered = Boolean(currentQ && answers[currentQ.id] !== null && answers[currentQ.id] !== undefined && answers[currentQ.id] !== '');
 
     useEffect(() => { answersRef.current = answers; }, [answers]);
 
-    const answeredCount = Object.values(answers).filter(v => v !== null && v !== undefined).length;
+    const answeredCount = Object.values(answers).filter(v => v !== null && v !== undefined && v !== '').length;
 
     // ─── SUBMITTED SCREEN ──────────────────────────────────────────────────────────
     if (submitted) {
@@ -515,7 +535,13 @@ export default function ExamInterface() {
 
     const getQStatus = (q: Question, idx: number): QuestionStatus => {
         if (idx === currentIdx) return 'current';
-        if (answers[q.id] !== null && answers[q.id] !== undefined) return 'answered';
+        if (isNavLocked) {
+            if (idx < currentIdx || (answers[q.id] !== null && answers[q.id] !== undefined && answers[q.id] !== '')) {
+                return 'answered';
+            }
+            return 'locked';
+        }
+        if (answers[q.id] !== null && answers[q.id] !== undefined && answers[q.id] !== '') return 'answered';
         if (markedForReview.has(q.id)) return 'marked_review';
         return 'not_visited';
     };
@@ -526,6 +552,7 @@ export default function ExamInterface() {
         answered:      'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200',
         marked_review: 'bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200',
         not_visited:   'bg-white text-slate-600 border-slate-200 hover:bg-slate-50',
+        locked:        'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed opacity-60',
     };
 
     const timerClass = timeLeft < 300 ? 'text-red-600 bg-red-50 border-red-100' : timeLeft < 600 ? 'text-amber-600 bg-amber-50 border-amber-100' : 'text-slate-800 bg-slate-50 border-slate-200';
@@ -550,12 +577,28 @@ export default function ExamInterface() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <button
-                        onClick={() => setShowSubmitConfirm(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-xl transition-colors text-sm shadow-sm"
-                    >
-                        Submit Examination
-                    </button>
+                    {!isNavLocked ? (
+                        <button
+                            onClick={() => setShowSubmitConfirm(true)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-2.5 rounded-xl transition-colors text-sm shadow-sm"
+                        >
+                            Submit Examination
+                        </button>
+                    ) : (
+                        currentIdx === questions.length - 1 && isCurrentAnswered ? (
+                            <button
+                                onClick={() => setShowSubmitConfirm(true)}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-2.5 rounded-xl transition-colors text-sm shadow-sm"
+                            >
+                                Submit Examination
+                            </button>
+                        ) : (
+                            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold">
+                                <Lock size={12} className="text-amber-600" />
+                                <span>Sequential Mode &bull; Q {currentIdx + 1}/{questions.length}</span>
+                            </div>
+                        )
+                    )}
                 </div>
             </header>
 
@@ -610,13 +653,28 @@ export default function ExamInterface() {
                 {/* LEFT: Question Navigator */}
                 <aside className="w-[280px] bg-white border-r border-slate-200 flex flex-col shrink-0 z-0">
                     <div className="p-5 border-b border-slate-100">
-                        <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider mb-4">Navigator</h2>
-                        <div className="grid grid-cols-2 gap-3 text-xs font-medium text-slate-600">
-                            <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Answered</span>
-                            <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Marked</span>
-                            <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-slate-300" /> Unanswered</span>
-                            <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-blue-600" /> Current</span>
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="font-bold text-slate-800 text-sm uppercase tracking-wider">Navigator</h2>
+                            {isNavLocked && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 uppercase">
+                                    <Lock size={10} /> Locked
+                                </span>
+                            )}
                         </div>
+                        {isNavLocked ? (
+                            <div className="grid grid-cols-2 gap-2 text-xs font-medium text-slate-600">
+                                <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Answered</span>
+                                <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-blue-600" /> Current</span>
+                                <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-slate-300" /> Locked</span>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-3 text-xs font-medium text-slate-600">
+                                <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Answered</span>
+                                <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-amber-500" /> Marked</span>
+                                <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-slate-300" /> Unanswered</span>
+                                <span className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full bg-blue-600" /> Current</span>
+                            </div>
+                        )}
                     </div>
                     
                     <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
@@ -626,8 +684,9 @@ export default function ExamInterface() {
                                 return (
                                     <button
                                         key={q.id}
-                                        onClick={() => setCurrentIdx(idx)}
-                                        className={`w-full aspect-square flex items-center justify-center rounded-xl font-bold text-sm border transition-all ${statusClasses[status]}`}
+                                        disabled={isNavLocked}
+                                        onClick={isNavLocked ? undefined : () => setCurrentIdx(idx)}
+                                        className={`w-full aspect-square flex items-center justify-center rounded-xl font-bold text-sm border transition-all ${statusClasses[status]} ${isNavLocked ? 'cursor-default pointer-events-none' : ''}`}
                                     >
                                         {idx + 1}
                                     </button>
@@ -653,17 +712,19 @@ export default function ExamInterface() {
                                         )}
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => toggleMarkForReview(currentQ.id)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
-                                        markedForReview.has(currentQ.id) 
-                                        ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' 
-                                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                                    }`}
-                                >
-                                    <Bookmark size={18} fill={markedForReview.has(currentQ.id) ? 'currentColor' : 'none'} />
-                                    {markedForReview.has(currentQ.id) ? 'Marked for Review' : 'Mark for Review'}
-                                </button>
+                                {!isNavLocked && (
+                                    <button
+                                        onClick={() => toggleMarkForReview(currentQ.id)}
+                                        className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all border ${
+                                            markedForReview.has(currentQ.id) 
+                                            ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100' 
+                                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        <Bookmark size={18} fill={markedForReview.has(currentQ.id) ? 'currentColor' : 'none'} />
+                                        {markedForReview.has(currentQ.id) ? 'Marked for Review' : 'Mark for Review'}
+                                    </button>
+                                )}
                             </div>
 
                             {/* Question Text */}
@@ -704,13 +765,20 @@ export default function ExamInterface() {
 
                             {/* Navigation Bar inside center panel */}
                             <div className="mt-auto pt-8 pb-4 flex items-center justify-between">
-                                <button
-                                    onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
-                                    disabled={currentIdx === 0}
-                                    className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:pointer-events-none"
-                                >
-                                    <ChevronLeft size={18} /> Previous
-                                </button>
+                                {!isNavLocked ? (
+                                    <button
+                                        onClick={() => setCurrentIdx(i => Math.max(0, i - 1))}
+                                        disabled={currentIdx === 0}
+                                        className="flex items-center gap-2 px-5 py-3 rounded-xl bg-white border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 hover:border-slate-300 transition-all disabled:opacity-40 disabled:pointer-events-none"
+                                    >
+                                        <ChevronLeft size={18} /> Previous
+                                    </button>
+                                ) : (
+                                    <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5 bg-slate-100 px-3 py-2 rounded-lg border border-slate-200">
+                                        <Lock size={13} className="text-amber-600" />
+                                        <span>Sequential Mode: Returning to previous questions is locked</span>
+                                    </div>
+                                )}
                                 
                                 <div className="flex gap-3">
                                     {answers[currentQ.id] && (
@@ -724,14 +792,23 @@ export default function ExamInterface() {
                                     {currentIdx === questions.length - 1 ? (
                                         <button
                                             onClick={() => setShowSubmitConfirm(true)}
-                                            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition-all shadow-sm"
+                                            disabled={isNavLocked && !isCurrentAnswered}
+                                            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition-all shadow-sm disabled:opacity-40 disabled:pointer-events-none"
                                         >
                                             Submit <CheckCircle2 size={18} />
                                         </button>
                                     ) : (
                                         <button
-                                            onClick={() => setCurrentIdx(i => Math.min(questions.length - 1, i + 1))}
-                                            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all shadow-sm"
+                                            onClick={() => {
+                                                if (isNavLocked) {
+                                                    if (!isCurrentAnswered) return;
+                                                    saveAnswer(currentQ.id, answers[currentQ.id] ?? null);
+                                                    isDirtyRef.current = true;
+                                                }
+                                                setCurrentIdx(i => Math.min(questions.length - 1, i + 1));
+                                            }}
+                                            disabled={isNavLocked && !isCurrentAnswered}
+                                            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 transition-all shadow-sm disabled:opacity-40 disabled:pointer-events-none"
                                         >
                                             Save & Next <ChevronRight size={18} />
                                         </button>
@@ -811,7 +888,9 @@ export default function ExamInterface() {
                             <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl mb-6 flex gap-3 items-start">
                                 <AlertTriangle className="text-amber-500 shrink-0" size={18} />
                                 <p className="text-amber-800 text-sm font-medium">
-                                    {questions.length - answeredCount} question{questions.length - answeredCount !== 1 ? 's are' : ' is'} left unanswered.
+                                    {isNavLocked
+                                        ? 'All questions must be answered sequentially before submitting.'
+                                        : `${questions.length - answeredCount} question${questions.length - answeredCount !== 1 ? 's are' : ' is'} left unanswered.`}
                                 </p>
                             </div>
                         )}
@@ -827,7 +906,8 @@ export default function ExamInterface() {
                             </button>
                             <button
                                 onClick={() => handleSubmit(false)}
-                                className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors text-sm shadow-sm"
+                                disabled={isNavLocked && (answeredCount < questions.length || !isCurrentAnswered)}
+                                className="flex-1 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors text-sm shadow-sm disabled:opacity-40 disabled:pointer-events-none"
                             >
                                 Submit Exam
                             </button>

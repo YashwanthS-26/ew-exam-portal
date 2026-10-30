@@ -3,13 +3,14 @@ import {
     createExam, getExams, getExam, publishExam, getStats,
     addQuestions, getExamQuestions, updateExam, getResults, getAllResults,
     deleteExam, addSingleQuestion, deleteSingleQuestion, joinExam,
-    validateExam, grantReattempt, resumeExam, getLiveMonitoring
+    validateExam, grantReattempt, resumeExam, getLiveMonitoring, getAppVersionConfig
 } from '../controllers/examController';
 import { authMiddleware } from '../middleware/authMiddleware';
 
 const router = Router();
 
 // ─── PUBLIC ───────────────────────────────────────────────────────────────────
+router.get('/app-version', getAppVersionConfig); // Authoritative application version
 router.get('/stats', getStats);
 router.get('/results', getAllResults);
 router.post('/join', joinExam);              // Student joins exam

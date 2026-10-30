@@ -23,6 +23,7 @@ export interface Exam {
     questions_to_display: number;
     randomization_enabled: boolean;
     show_results_to_students: boolean;
+    lock_question_navigation?: boolean;
     status: ExamStatus;
     created_at: string;
 }

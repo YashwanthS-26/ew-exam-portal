@@ -2,6 +2,7 @@ import { Server, Socket } from 'socket.io';
 import { supabase } from '../config/supabase';
 import { evaluateExam } from '../controllers/evaluationController';
 import { flushAttemptToSupabase } from '../redisSyncWorker';
+import { validateAppVersion } from '../config/version';
 
 // Track active exams and connected students in memory for speed
 // Keyed by examId
@@ -212,7 +213,19 @@ export const setupSocketHandlers = (io: Server) => {
         });
 
         // ─── STUDENT ─────────────────────────────────────────────────────────
-        socket.on('join_exam', async (payload: { examId: string; attemptId: string; name: string; rollNumber: string }) => {
+        socket.on('join_exam', async (payload: { examId: string; attemptId: string; name: string; rollNumber: string; appVersion?: string }) => {
+            if (payload.appVersion) {
+                const versionCheck = validateAppVersion(payload.appVersion);
+                if (!versionCheck.valid) {
+                    socket.emit('version_error', {
+                        error: 'Application Update Required',
+                        details: `Your application version is outdated or not supported for this examination. Required version: ${versionCheck.requiredVersion}. Installed version: ${versionCheck.clientVersion}.`
+                    });
+                    socket.disconnect(true);
+                    return;
+                }
+            }
+
             socket.join(`exam:${payload.examId}`);
             await supabase.from('student_attempts')
                 .update({ socket_id: socket.id, status: 'IN_PROGRESS' })
@@ -314,7 +327,12 @@ export const setupSocketHandlers = (io: Server) => {
             const reason = payload.reason || 'normal';
             // Flush any pending Redis answers BEFORE scoring to ensure all answers are counted
             await flushAttemptToSupabase(payload.attemptId);
-            const result = await evaluateExam(payload.attemptId);
+            const result = await evaluateExam(payload.attemptId, reason);
+
+            if (!result.success && reason === 'normal') {
+                socket.emit('exam_submission_failed', { error: result.error || 'Submission failed' });
+                return;
+            }
 
             // Store submit reason and ensure status is explicitly SUBMITTED
             await supabase.from('student_attempts')
